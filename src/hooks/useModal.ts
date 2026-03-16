@@ -10,3 +10,13 @@ export const useModal = (initialState: boolean = false) => {
 
   return { isOpen, openModal, closeModal, toggleModal };
 };
+
+
+export const useManageModals = () => {
+  const [createModal, setCreateModal] = useState(false)
+  const [editModal, setEditModal] = useState(false)
+  const [deleteModal, setDeleteModal] = useState(false)
+
+  return { setCreateModal, setEditModal, setDeleteModal, createModal, editModal, deleteModal }
+
+}

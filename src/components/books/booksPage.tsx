@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import BookCard from "../cards/BookCard"
 
 export default function BooksPage() {
     const [books, setBooks] = useState([])
@@ -24,14 +25,7 @@ export default function BooksPage() {
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Libros</h1>
         <div className="grid gap-3 grid-cols-4">
-            {books?.map((book: any) => <div key={book.id} className="flex  shadow-xl rounded-lg">
-                <img className="rounded-l-lg" src={book.routeimg}></img>
-                <div className="flex p-5 flex-col text-left items-center  rounded-r-lg bg-white">
-                    <strong className="text-lg">{book.title}</strong>
-                    <p className="text-sm">{book.description}</p>
-                </div>
-
-            </div>)}
+            {books?.map((book: any) => <BookCard key={book.id} id={book.id} title={book.title} description={book.description} img={book.routeimg} />)}
 
         </div>
 
