@@ -21,6 +21,7 @@ import {
 import SidebarWidget from "./SidebarWidget";
 import { oswald } from "@/app/(full-width-pages)/(auth)/layout";
 
+
 type NavItem = {
   name: string;
   icon: React.ReactNode;
@@ -35,7 +36,7 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Ecommerce", path: "/", pro: false }],
   },
   {
-    icon: <CalenderIcon />,
+    icon: <div>📖</div>,
     name: "Libros",
     path: "/books",
     subItems: [{ name: "Ver todos los libros", path: "/books", pro: false },
@@ -45,7 +46,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <UserCircleIcon />,
+    icon: <div>📝</div>,
     name: "Inventario",
     path: "/inventory",
   },
