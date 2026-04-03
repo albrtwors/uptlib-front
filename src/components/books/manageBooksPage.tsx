@@ -37,7 +37,7 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
-        fetch(`/api/book`, fetchPostConfig(data))
+        fetch(`/api/book`, { method: 'POST', body: formData, credentials: 'include' })
             .then((res: Response) => res.json())
             .then((response: any) => {
 
@@ -157,7 +157,7 @@ export default function ManageBooksPage() {
         {createModal &&
             <GenericModalContainer>
                 <div className="flex-1 flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
+                <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
                     <div>
                         <Label>Título del libro</Label>
                         <Input name="title" placeholder="Mago de Oz"></Input>
@@ -168,8 +168,11 @@ export default function ManageBooksPage() {
                     </div>
                     <div>
                         <Label>Pdf</Label>
-                        <Input name="routepdf" placeholder="pdf"></Input>
+                        <Input type="file" name="pdf" placeholder="pdf"></Input>
+
                     </div>
+                    {/* <Label>Pdf</Label>
+                    <Input type="text" name="routepdf" placeholder="pdf"></Input> */}
                     <div>
                         <Label>Imágen</Label>
                         <Input name="routeimg" placeholder="image"></Input>
