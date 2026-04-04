@@ -168,8 +168,7 @@ export default function ManageBooksPage() {
                     </div>
                     <div>
                         <Label>Pdf</Label>
-                        <Input type="file" name="pdf" placeholder="pdf"></Input>
-
+                        <Input type="file" name="pdf" placeholder="archivo"></Input>
                     </div>
                     {/* <Label>Pdf</Label>
                     <Input type="text" name="routepdf" placeholder="pdf"></Input> */}
@@ -197,7 +196,7 @@ export default function ManageBooksPage() {
                     </div>
                     <div>
                         <Label>Pdf</Label>
-                        <Input defaultValue={selectedBook.routepdf} name="routepdf" placeholder="pdf"></Input>
+                        <Input type="file" name="pdf" placeholder="archivo"></Input>
                     </div>
                     <div>
                         <Label>Imágen</Label>
