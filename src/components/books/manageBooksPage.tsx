@@ -63,11 +63,14 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
-        fetch(`/api/book/${selectedBook.id}`, fetchPatchConfig(dataXd)).then(res => res.json()).then((data: any) => {
+        fetch(`/api/book/${selectedBook.id}`, {
+            body: formData,
+            credentials: 'include',
+            method: 'PATCH'
+        }).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             console.log(data)
             if (result) {
-
                 getBooks({ search, limit }).then((res: any) => setBooks(res))
                 setEditModal(false)
             }
@@ -185,7 +188,7 @@ export default function ManageBooksPage() {
         {(editModal && selectedBook) &&
             <GenericModalContainer>
                 <div className="flex-1 flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
+                <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
                     <div>
                         <Label>Título del libro</Label>
                         <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz"></Input>
@@ -194,10 +197,15 @@ export default function ManageBooksPage() {
                         <Label>Descripción</Label>
                         <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
                     </div>
+
                     <div>
                         <Label>Pdf</Label>
                         <Input type="file" name="pdf" placeholder="archivo"></Input>
                     </div>
+                    {/* <div>
+                        <Label>Pdf</Label>
+                        <Input type="file" name="pdf" placeholder="archivo"></Input>
+                    </div> */}
                     <div>
                         <Label>Imágen</Label>
                         <Input defaultValue={selectedBook.routeimg} name="routeimg" placeholder="image"></Input>
