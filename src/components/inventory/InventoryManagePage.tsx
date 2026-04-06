@@ -11,6 +11,7 @@ import { handleResponses } from "@/lib/responses/handleResponses"
 import { SwalAlert } from "@/lib/swal/swal"
 import { usePathname, useRouter } from "next/navigation"
 import { TvIcon } from "@heroicons/react/24/outline"
+import { api } from "@/consts/api"
 
 
 const useItems = ({ search, limit }: any) => {
@@ -75,7 +76,7 @@ export default function InventoryManagePage({ }) {
             <div>
                 <div className="flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
 
-                <form action="" onSubmit={handleCreateSubmit} className="flex flex-col gap-2">
+                <form encType="multipart/form-data" action="" onSubmit={handleCreateSubmit} className="flex flex-col gap-2">
 
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
@@ -93,6 +94,11 @@ export default function InventoryManagePage({ }) {
                         <Input name='stock' type='number' placeholder="Cantidad..."></Input>
                     </div>
 
+                    <div className="flex flex-col">
+                        <Label>Imagen</Label>
+                        <Input name='img' type='file' placeholder="Imagen de referencia"></Input>
+                    </div>
+
                     <Button>Subir</Button>
                 </form>
             </div>
@@ -101,7 +107,7 @@ export default function InventoryManagePage({ }) {
         {(editModal && selectedItem) && <GenericModalContainer>
             <div>
                 <div className="flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                <form action="" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
+                <form encType="multipart/form-data" action="" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
                         <Input defaultValue={selectedItem.name} name='name' placeholder="Nombre"></Input>
@@ -137,7 +143,8 @@ export default function InventoryManagePage({ }) {
         <div className="grid grid-cols-5 gap-10">
             {
                 items && items?.map((item: any) => <div key={item.id} className="p-5 flex flex-col gap-1 items-center rounded-lg shadow-xl hover:scale-110 transition-all">
-                    <div onClick={() => setSelectedItem(false)} className="size-30 bg-blue-600 rounded-lg"></div>
+                    {!item.routeimg && <div onClick={() => setSelectedItem(false)} className="size-30 bg-blue-600 rounded-lg"></div>}
+                    {item.routeimg && <img onClick={() => setSelectedItem(false)} className="w-32 h-32 object-cover rounded-lg" src={`${api.base_url}${item.routeimg}`} alt={item.name} />}
 
                     <strong className="text-md">{item.name}</strong>
 
@@ -167,8 +174,8 @@ export default function InventoryManagePage({ }) {
 const useHttpRequests = ({ selectedItem, setDeleteModal, getItems, setItems, search, limit }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
-        fetch(`/api/inventory`, fetchPostConfig(data)).then(res => res.json()).then(data => {
+        const data = new FormData(e.currentTarget)
+        fetch(`/api/inventory`, { method: 'POST', credentials: 'include', body: data }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
                 getItems({ search, limit }).then((res: any) => setItems(res))
@@ -179,7 +186,7 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, getItems, setItems, sea
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
+        const data = new FormData(e.currentTarget)
         fetch(`/api/inventory/${selectedItem.id}`, fetchPatchConfig(data)).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
