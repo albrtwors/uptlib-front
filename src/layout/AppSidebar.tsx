@@ -33,16 +33,24 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    subItems: [{ name: "Principal", path: "/", pro: false }],
   },
   {
     icon: <div>📖</div>,
-    name: "Libros",
+    name: "Libros digitales",
     path: "/books",
     subItems: [{ name: "Ver todos los libros", path: "/books", pro: false },
     { name: "Tus libros favoritos", path: "/books/favorites", pro: false },
     { name: "Gestionar Libros", path: "/books/manage", pro: false }
 
+    ],
+  },
+  {
+    icon: <div>📖</div>,
+    name: "Libros físicos",
+    path: "/physical-books",
+    subItems: [{ name: "Ver todos los libros", path: "/physical-books", pro: false },
+    { name: "Gestionar Libros físicos", path: "/physical-books/manage", pro: false }
     ],
   },
   {
