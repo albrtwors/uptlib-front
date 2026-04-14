@@ -49,8 +49,9 @@ const navItems: NavItem[] = [
     icon: <div>📖</div>,
     name: "Libros físicos",
     path: "/physical-books",
-    subItems: [{ name: "Ver todos los libros", path: "/physical-books", pro: false },
-    { name: "Gestionar Libros físicos", path: "/physical-books/manage", pro: false }
+    subItems: [{ name: "Operaciones", path: "/physical-books/operations", pro: false },
+    { name: "Gestionar Libros físicos", path: "/physical-books/manage", pro: false },
+    { name: "Gestionar Préstamos", path: "/physical-books/loans", pro: false }
     ],
   },
   {

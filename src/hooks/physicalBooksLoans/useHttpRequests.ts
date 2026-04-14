@@ -2,14 +2,14 @@ import { fetchDeleteConfig } from "@/lib/fetch/fetchConfig"
 import { handleResponses } from "@/lib/responses/handleResponses"
 import { SwalAlert } from "@/lib/swal/swal"
 
-export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks }: any) => {
+export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, getLoans, setLoans }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
-        fetch(`/api/physical-book`, {
+        fetch(`/api/physical-book-operation/loan`, {
             method: 'POST', body: JSON.stringify(data), headers: {
                 'Content-Type': 'application/json'
             }
@@ -19,7 +19,7 @@ export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDelete
 
                 const result = handleResponses(response)
                 if (result) {
-                    getBooks({ search, limit }).then((res: any) => setBooks(res))
+                    getLoans({ search, limit }).then((res: any) => setLoans(res))
                     setCreateModal(false)
                 }
 
@@ -33,6 +33,15 @@ export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDelete
                 });
             });
     }
+
+
+    const handleSettle = (id: any) => {
+        fetch(`/api/physical-book-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
+            return res.json()
+        }).then(data => handleResponses(data))
+
+    }
+
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -65,5 +74,5 @@ export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDelete
             }
         })
     }
-    return { handleDeleteSubmit, handleEditSubmit, handleCreateSubmit }
+    return { handleDeleteSubmit, handleEditSubmit, handleCreateSubmit, handleSettle }
 }
