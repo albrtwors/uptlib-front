@@ -8,19 +8,23 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import GenericModalContainer from "../modals/GenericModalContainer";
 import Label from "../form/Label";
-import { useHttpSubmit } from "@/hooks/physicalBooksLoans/useHttpRequests";
+import { useHttpSubmit } from "@/hooks/physicalBookOperations/useHttpSubmit";
 import { useManageModals } from "@/hooks/useModal";
 import PhysicalBookSearcher from "../form/input/physical-book-searcher/PhysicalBookSearcher";
 import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
 import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
+import ManagePhysicalBooksTable from "./tables/operationsTable";
+import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
 
-export default function ManageLoansPage() {
+export default function ManageOperationsPage() {
     //modal handling
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
+    const [entrieModal, setEntrieModal] = useState<any>(false)
+    const [dropModal, setDropModal] = useState<any>(false)
     const [selectedBook, setSelectedBook]: any = useState(null)
-
+    const [selectedOperation, setSelectedOperation] = useState<any>(null)
     //search handling
     const pathname = usePathname();
     const router = useRouter();
@@ -30,9 +34,10 @@ export default function ManageLoansPage() {
     const [limit, setLimit] = useState(10)
     const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
+    const { operations, setOperations, getOperations } = useOperations({ search: searchInput, limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation })
 
 
     useEffect(() => {
@@ -41,19 +46,24 @@ export default function ManageLoansPage() {
         params.set('limit', limit.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${searchInput}`)
+        fetch(`/api/physical-book-operation?limit=${limit}&search=${searchInput}`)
             .then(res => res.json())
             .then((data: any) => {
                 console.log(data)
-                setLoans(data)
+                setOperations(data)
             })
     }, [searchInput, limit]);
 
 
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Gestionar Préstamos</h1>
-        <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+        <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
+        <div className="flex gap-2 justify-center">
+            <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
+            <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+            {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
+        </div>
+
 
 
         <div className="flex gap-3">
@@ -72,16 +82,10 @@ export default function ManageLoansPage() {
 
         </div>
 
-        <ManageLoansTable onSettle={(id) => {
-
-            handleSettle(id)
-            getLoans({ search: searchInput, limit }).then(data => {
-                console.log(data, 'asdads')
-                setLoans(data)
-            })
-
-
-        }} onEdit={() => { console.log('yay') }} loans={loans}></ManageLoansTable>
+        <ManagePhysicalBooksTable onDelete={(operation: any) => {
+            setSelectedOperation(operation)
+            setDeleteModal(true)
+        }} onEdit={(id: any) => { console.log('yay') }} operations={operations}></ManagePhysicalBooksTable>
 
 
 
@@ -159,12 +163,12 @@ export default function ManageLoansPage() {
                 </form>
             </GenericModalContainer>}
 
-        {(deleteModal && selectedBook) &&
+        {(deleteModal && selectedOperation) &&
             <GenericModalContainer>
                 <div className="flex-1 flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)} className="flex flex-col gap-2">
 
-                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedBook.title}?</h3>
+                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedOperation.book.title}?</h3>
                     <div className="flex gap-3 justify-center">
                         <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
                         <Button className="bg-red-600">Eliminar</Button>
@@ -173,5 +177,59 @@ export default function ManageLoansPage() {
                 </form>
             </GenericModalContainer>}
 
+        {(entrieModal) &&
+            <GenericModalContainer>
+                <div className="flex-1 flex justify-end"><Button onClick={() => setEntrieModal(false)}>X</Button></div>
+                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEntrieSubmit(e)} className="flex flex-col gap-2">
+                    <div>
+                        <Label>Nombre del Encargado</Label>
+                        <Input name="personNames"></Input>
+                    </div>
+
+                    <div>
+                        <Label>Apellido del Encargado</Label>
+                        <Input name="personSurNames"></Input>
+                    </div>
+
+                    <div>
+                        <Label>Cantidad a agregar</Label>
+                        <Input name="quantity"></Input>
+                    </div>
+                    <div>
+                        <PhysicalBookSearcher ></PhysicalBookSearcher>
+                    </div>
+
+                    <Button>Guardar</Button>
+
+                </form>
+            </GenericModalContainer>}
+
+
+        {(dropModal) &&
+            <GenericModalContainer>
+                <div className="flex-1 flex justify-end"><Button onClick={() => setDropModal(false)}>X</Button></div>
+                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDropSubmit(e)} className="flex flex-col gap-2">
+                    <div>
+                        <Label>Nombre del Encargado</Label>
+                        <Input name="personNames"></Input>
+                    </div>
+
+                    <div>
+                        <Label>Apellido del Encargado</Label>
+                        <Input name="personSurNames"></Input>
+                    </div>
+
+                    <div>
+                        <Label>Cantidad a agregar</Label>
+                        <Input name="quantity"></Input>
+                    </div>
+                    <div>
+                        <PhysicalBookSearcher ></PhysicalBookSearcher>
+                    </div>
+
+                    <Button>Guardar</Button>
+
+                </form>
+            </GenericModalContainer>}
     </section>
 }

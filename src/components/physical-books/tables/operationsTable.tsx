@@ -1,106 +1,92 @@
 "use client"
 
-export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: any) {
+export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit }: any) {
     return <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
             <table className="w-full table-auto min-w-[850px]">
                 <thead>
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Título
+                            Título del Libro
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            ISBN del Libro
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
-                            ISBN
+                            Tipo de operación
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
-                            Año
+                            Cantidad
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                            Autor
+                            Fecha
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                            Categoría
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
-                            Editorial
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Stock
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Status
-                        </th>
+
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
                             Acciones
                         </th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                    {books.map((book: any) => (
+                    {operations.map((operation: any) => (
                         <tr
-                            key={book.id}
+                            key={operation.id}
                             className="hover:bg-gray-50 transition-colors group"
                         >
                             {/* Título */}
                             <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
-                                <div className="font-semibold text-gray-900 truncate mb-1">{book.title}</div>
-                                <div className="text-sm text-gray-500">ID: {book.id}</div>
+                                <div className="font-semibold text-gray-900 truncate mb-1">{operation.book.title}</div>
+                                <div className="text-sm text-gray-500">ID: {operation.book.id}</div>
                             </td>
 
                             {/* ISBN */}
                             <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
                                 <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                    {book.isbn || 'N/A'}
+                                    {operation.book.isbn || 'N/A'}
                                 </span>
                             </td>
 
                             {/* Año */}
                             <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell">
-                                {book.yearOfPublication || 'N/A'}
+                                {
+                                    operation.type == 'PRESTAMO' && <p className="font-bold text-yellow-400">{operation.type}</p>
+                                }
+
+                                {
+                                    operation.type == 'DEVOLUCION' && <p className="font-bold text-blue-600">{operation.type}</p>
+                                }
+
+                                {
+                                    operation.type == 'BAJA' && <p className="font-bold text-red-600">{operation.type}</p>
+                                }
+
+                                {operation.type == 'ENTRADA' && <p className="font-bold text-green-600">{operation.type}</p>}
                             </td>
 
-                            {/* Autor */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                <div className="font-medium text-gray-900 truncate">{book.author?.name || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{book.authorId}</div>
+
+                            {/* Año */}
+                            <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell">
+                                {operation.quantity || 'N/A'}
                             </td>
 
-                            {/* Categoría */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                <div className="font-medium text-gray-900 truncate">{book.category?.name || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{book.categoryId}</div>
+
+                            {/* Año */}
+                            <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell">
+                                {new Date(operation.createdAt).toLocaleString('es-ES')}
                             </td>
 
-                            {/* Editorial */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
-                                <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                    {book.editorial}
-                                </span>
-                            </td>
 
-                            {/* Stock */}
-                            <td className="px-4 py-4 text-right text-sm font-medium">
-                                <div className="text-2xl font-bold text-gray-900">
-                                    {book.totalStock}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    Disp: {book.availableStock || 0}
-                                </div>
-                            </td>
 
-                            {/* Stock */}
-                            <td className="px-4 py-4 text-right text-sm font-medium">
-                                <div className="text-md rounded-full px-6 py-3 font-bold ">
-                                    {book.status}
-                                </div>
 
-                            </td>
+
+
+
                             {/* ✅ BOTONES ACCIONES */}
                             <td className="px-4 py-4 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                     {/* Botón EDITAR */}
                                     <button
-                                        onClick={() => onEdit(book)}
+                                        onClick={() => onEdit(operation)}
                                         className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
                                         title="Editar libro"
                                     >
@@ -112,7 +98,7 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
 
                                     {/* Botón ELIMINAR */}
                                     <button
-                                        onClick={() => onDelete(book)}
+                                        onClick={() => onDelete(operation)}
                                         className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
                                         title="Eliminar libro"
                                     >
@@ -131,7 +117,7 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
 
         {/* Mobile Cards - CON BOTONES */}
         <div className="md:hidden mt-4 space-y-3">
-            {books.map((book: any) => (
+            {operations.map((book: any) => (
                 <div key={book.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group/card">
                     <div className="flex justify-between items-start mb-3">
                         <h3 className="font-bold text-lg text-gray-900 truncate flex-1 pr-4">

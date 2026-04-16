@@ -18,6 +18,7 @@ export const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDelete
             .then((response: any) => {
 
                 const result = handleResponses(response)
+
                 if (result) {
                     getLoans({ search, limit }).then((res: any) => setLoans(res))
                     setCreateModal(false)
