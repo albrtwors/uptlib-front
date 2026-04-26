@@ -2,14 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Label from "../../Label"
-import { useAuthors } from "@/hooks/authors/useAuthors"
+import { useCategories } from "@/hooks/categories/useCategories" // ✅ CAMBIADO
 import Input from "../InputField"
-import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
+import useTypes from "@/hooks/types/useTypes"
 
-export default function PhysicalBookSearcher({ defaultValue = null }: any) {
+export default function ItemTypeSearcher({ defaultValue = null }: any) {
     const [search, setSearch] = useState('')
-    const [selectedBook, setSelectedBook] = useState<any>(defaultValue)
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search })
+    const [selectedType, setSelectedType] = useState<any>(defaultValue)
+    const { types, setTypes, getTypes } = useTypes({ search })
+
+    const { categories, getCategories, setCategories } = useCategories({ search }) // ✅ CAMBIADO
     const containerRef = useRef<HTMLDivElement>(null)
     const searchTimeoutRef = useRef<NodeJS.Timeout>(null)
 
@@ -21,12 +23,9 @@ export default function PhysicalBookSearcher({ defaultValue = null }: any) {
 
         if (search.length >= 2) {
             searchTimeoutRef.current = setTimeout(() => {
-
-
-                getBooks({ search }).then((data: any) => {
-                    setUseAllBooks(data.data)
+                getTypes({ src: search }).then(res => {
+                    setTypes(res)
                 })
-
             }, 300)
         }
 
@@ -35,17 +34,17 @@ export default function PhysicalBookSearcher({ defaultValue = null }: any) {
                 clearTimeout(searchTimeoutRef.current)
             }
         }
-    }, [search, getBooks])
+    }, [search])
 
-    // Seleccionar autor (solo uno)
-    const selectAuthor = (author: any) => {
-        setSelectedBook(author)
+    // Seleccionar categoría (solo una)
+    const selectCategory = (category: any) => {
+        setSelectedType(category)
         setSearch('')
     }
 
     // Limpiar selección
-    const clearAuthor = () => {
-        setSelectedBook(null)
+    const clearCategory = () => {
+        setSelectedType(null)
         setSearch('')
     }
 
@@ -64,56 +63,56 @@ export default function PhysicalBookSearcher({ defaultValue = null }: any) {
     return (
         <div ref={containerRef} className="space-y-3">
             <div>
-                <Label>Libro</Label>
+                <Label>Tipo</Label> {/* ✅ CAMBIADO */}
                 <input
-                    className={`h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800`}
+                    className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                     value={search}
                     onChange={(e: any) => setSearch(e.currentTarget.value)}
                     type="text"
-                    name="authorSearch"
-                    placeholder="Buscar libro.."
+                    name="categorySearch"
+                    placeholder="Buscar categoría..."
 
                 />
             </div>
 
             {/* ✅ LISTA DE RESULTADOS */}
-            {books.length > 0 && search.length >= 2 && !selectedBook && (
+            {types.length > 0 && search.length >= 2 && !selectedType && ( // ✅ categories
                 <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg shadow-sm bg-white">
                     <div className="divide-y divide-gray-100">
-                        {books.slice(0, 8).map((book: any) => (
+                        {types.slice(0, 8).map((category: any) => ( // ✅ categories
                             <div
-                                key={book.id}
-                                className="px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all border-l-4 border-transparent hover:border-blue-400 first:rounded-t-lg last:rounded-b-lg"
-                                onClick={() => selectAuthor(book)}
+                                key={category.id}
+                                className="px-4 py-3 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 cursor-pointer transition-all border-l-4 border-transparent hover:border-purple-400 first:rounded-t-lg last:rounded-b-lg"
+                                onClick={() => selectCategory(category)}
                             >
-                                <div className="font-medium text-gray-900 hover:text-blue-700 truncate">
-                                    {book.title}
+                                <div className="font-medium text-gray-900 hover:text-purple-700 truncate">
+                                    {category.name}
                                 </div>
-                                <div className="text-sm text-gray-500 mt-0.5">ID: {book.id}</div>
+                                <div className="text-sm text-gray-500 mt-0.5">ID: {category.id}</div>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* ✅ CARD DEL AUTOR SELECCIONADO */}
-            {selectedBook && (
-                <div className="p-4 border-2 border-blue-200 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
+            {/* ✅ CARD DE LA CATEGORÍA SELECCIONADA */}
+            {selectedType && (
+                <div className="p-4 border-2 border-purple-200 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                             <div className="font-bold text-xl text-gray-900 truncate">
-                                {selectedBook.title}
+                                {selectedType.name}
                             </div>
-                            <div className="text-sm text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full inline-block mt-1">
-                                CANTIDAD DISPONIBLE: {selectedBook.availableStock}
+                            <div className="text-sm text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full inline-block mt-1">
+                                ID: {selectedType.id}
                             </div>
                         </div>
 
                         <button
                             type="button"
-                            onClick={clearAuthor}
+                            onClick={clearCategory}
                             className="ml-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:scale-110 shadow-sm"
-                            title="Cambiar autor"
+                            title="Cambiar categoría"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -124,19 +123,19 @@ export default function PhysicalBookSearcher({ defaultValue = null }: any) {
             )}
 
             {/* ✅ INPUT OCULTO para DB */}
-            {selectedBook && (
+            {selectedType && (
                 <input
                     type="hidden"
-                    name="bookId"
-                    value={selectedBook.id}
+                    name="typeId"
+                    value={selectedType.id}
                 />
             )}
 
             {/* ✅ Estado vacío */}
-            {!selectedBook && !books.length && search.length < 2 && (
+            {!selectedType && !types.length && search.length < 2 && (
                 <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-                    <div className="text-sm text-gray-500 mb-1">👤</div>
-                    <div className="text-sm font-medium text-gray-900">Busca un libro</div>
+                    <div className="text-sm text-gray-500 mb-1">📂</div>
+                    <div className="text-sm font-medium text-gray-900">Busca un tipo</div>
                     <div className="text-xs text-gray-500">Escribe mínimo 2 caracteres</div>
                 </div>
             )}

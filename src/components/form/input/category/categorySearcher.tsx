@@ -8,7 +8,7 @@ import Input from "../InputField"
 export default function CategorySearcher({ defaultValue = null }: any) {
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState<any>(defaultValue)
-    const { categories, getCategories } = useCategories({ search }) // ✅ CAMBIADO
+    const { categories, getCategories, setCategories } = useCategories({ search }) // ✅ CAMBIADO
     const containerRef = useRef<HTMLDivElement>(null)
     const searchTimeoutRef = useRef<NodeJS.Timeout>(null)
 
@@ -20,7 +20,9 @@ export default function CategorySearcher({ defaultValue = null }: any) {
 
         if (search.length >= 2) {
             searchTimeoutRef.current = setTimeout(() => {
-                getCategories({ search }) // ✅ getCategories
+                getCategories({ search }).then(res => {
+                    setCategories(res)
+                })
             }, 300)
         }
 

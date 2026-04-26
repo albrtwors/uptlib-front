@@ -2,14 +2,14 @@ import { fetchDeleteConfig } from "@/lib/fetch/fetchConfig"
 import { handleResponses } from "@/lib/responses/handleResponses"
 import { SwalAlert } from "@/lib/swal/swal"
 
-export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, getLoans, setLoans, page = 1, totalPages }: any) => {
+export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, getLoans, setLoans, page = 1, totalPages }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
-        fetch(`/api/physical-book-operation/loan`, {
+        fetch(`/api/inventory-operation/loan`, {
             method: 'POST', body: JSON.stringify(data), headers: {
                 'Content-Type': 'application/json'
             }
@@ -20,9 +20,8 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
                 const result = handleResponses(response)
 
                 if (result) {
-                    getLoans({ search, limit, page }).then((res: any) => {
-
-                        setLoans(res.data)
+                    getItemLoans({ search, limit, page }).then((res: any) => {
+                        setItemLoans(res.data)
                         totalPages.current = res.totalPages
                     })
                     setCreateModal(false)
@@ -41,13 +40,13 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
 
 
     const handleSettle = (id: any) => {
-        fetch(`/api/physical-book-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
+        fetch(`/api/inventory-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
             return res.json()
         }).then(data => {
             handleResponses(data)
-            getLoans({ search, limit, page }).then((res: any) => {
-                setLoans(res.data)
-
+            getItemLoans({ search, limit, page }).then((res: any) => {
+                setItemLoans(res.data)
+                setPage(1)
                 totalPages.current = res.totalPages
 
             })

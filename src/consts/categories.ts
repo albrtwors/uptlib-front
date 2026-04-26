@@ -1,4 +1,5 @@
 export const CATEGORIES = [
+    'todos',
     'INFORMATICA',
     'ELECTRONICA',
     'CONTADURIA',

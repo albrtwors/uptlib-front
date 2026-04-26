@@ -8,9 +8,10 @@ import Input from "../InputField"
 export default function AuthorSearcher({ defaultValue = null }: any) {
     const [search, setSearch] = useState('')
     const [selectedAuthor, setSelectedAuthor] = useState<any>(defaultValue)
-    const { authors, getAuthors } = useAuthors({ search })
+    const { authors, getAuthors, setAuthors } = useAuthors({ search })
+
     const containerRef = useRef<HTMLDivElement>(null)
-    const searchTimeoutRef = useRef<NodeJS.Timeout>()
+    const searchTimeoutRef = useRef<NodeJS.Timeout>(null)
 
     // ✅ Debounce búsqueda
     useEffect(() => {
@@ -20,7 +21,9 @@ export default function AuthorSearcher({ defaultValue = null }: any) {
 
         if (search.length >= 2) {
             searchTimeoutRef.current = setTimeout(() => {
-                getAuthors({ search })
+                getAuthors({ search }).then(res => {
+                    setAuthors(res)
+                })
             }, 300)
         }
 

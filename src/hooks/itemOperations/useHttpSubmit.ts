@@ -8,7 +8,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         console.log(Object.fromEntries(formData.entries()))
-        fetch(`/api/physical-book-operation/entries`, {
+        fetch(`/api/inventory-operation/entries`, {
             credentials: 'include',
             body: JSON.stringify(Object.fromEntries(formData.entries())),
             method: 'PATCH',
@@ -64,7 +64,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         console.log(Object.fromEntries(formData.entries()))
-        fetch(`/api/physical-book-operation/drops`, {
+        fetch(`/api/inventory-operation/drops`, {
             credentials: 'include',
             body: JSON.stringify(Object.fromEntries(formData.entries())),
             method: 'PATCH',

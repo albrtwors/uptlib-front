@@ -1,10 +1,15 @@
 import { api } from "@/consts/api"
 import Link from "next/link"
+import LikeButton from "../buttons/LikeButton"
+import Button from "../ui/button/Button"
+import { handleResponses } from "@/lib/responses/handleResponses"
 
 const { base_url } = api
 
 
-export default function BookCard({ id, title, description, routepdf }: { title: string, description: string, id: number, routepdf: string }) {
+
+
+export default function BookCard({ id, handleQuit, title, description, routepdf }: { title: string, description: string, id: string, handleQuit?: any, routepdf: string }) {
     return (
         <div className="group relative w-80 h-96 p-8 rounded-2xl bg-white shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border border-gray-100 hover:border-indigo-200 overflow-hidden">
 
@@ -12,6 +17,21 @@ export default function BookCard({ id, title, description, routepdf }: { title: 
 
             <div className="relative z-10 h-full flex flex-col justify-between">
 
+                <div className="flex justify-end">
+                    {!handleQuit ? <LikeButton id={id}></LikeButton> : <div>
+                        <Button onClick={() => {
+                            fetch(`/api/book/remove-like/${id}`, { method: 'POST' }).then(res => res.json()).then(data => {
+                                handleResponses(data)
+                                handleQuit()
+                            })
+
+                        }}>X</Button>
+
+                    </div>
+                    }
+
+
+                </div>
                 <div className="w-2 h-24 bg-gradient-to-b from-indigo-400 to-purple-400 rounded-r-full shadow-md mb-8 ml-2"></div>
 
                 <div className="flex-1 flex flex-col justify-center">

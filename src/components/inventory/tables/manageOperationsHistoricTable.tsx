@@ -1,16 +1,16 @@
 "use client"
 
-export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit }: any) {
+export default function ManageItemOperationsTable({ operations, onDelete, onEdit }: any) {
     return <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="overflow-x-auto">
             <table className="w-full table-auto min-w-[850px]">
                 <thead>
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Título del Libro
+                            Item
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            ISBN del Libro
+                            Responsable
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                             Tipo de operación
@@ -33,14 +33,14 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                         >
                             {/* Título */}
                             <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
-                                <div className="font-semibold text-gray-900 truncate mb-1">{operation.book.title}</div>
-                                <div className="text-sm text-gray-500">ID: {operation.book.id}</div>
+                                <div className="font-semibold text-gray-900 truncate mb-1">{operation.item.name}</div>
+                                <div className="text-sm text-gray-500">ID: {operation.item.id}</div>
                             </td>
 
                             {/* ISBN */}
                             <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
                                 <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                    {operation.book.isbn || 'N/A'}
+                                    {operation.personNames + ' ' + operation.personSurNames || 'N/A'}
                                 </span>
                             </td>
 

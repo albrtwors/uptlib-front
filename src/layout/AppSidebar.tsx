@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Principal", path: "/", pro: false }],
   },
   {
-    icon: <div>📖</div>,
+    icon: <div>📱</div>,
     name: "Libros digitales",
     path: "/books",
     subItems: [{ name: "Ver todos los libros", path: "/books", pro: false },
@@ -58,6 +58,10 @@ const navItems: NavItem[] = [
     icon: <div>📝</div>,
     name: "Inventario",
     path: "/inventory",
+    subItems: [{ name: "Operaciones", path: "/inventory/operations", pro: false },
+    { name: "Gestionar el Inventario", path: "/inventory", pro: false },
+    { name: "Gestionar Préstamos", path: "/inventory/loans", pro: false },
+    ],
   },
 
 

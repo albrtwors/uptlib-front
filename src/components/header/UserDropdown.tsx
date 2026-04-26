@@ -17,7 +17,9 @@ const useUserProfile = () => {
   }
   useEffect(() => {
     getUser().then((res: any) => {
+
       setProfile(res)
+
 
 
     })

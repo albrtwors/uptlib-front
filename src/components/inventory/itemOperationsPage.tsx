@@ -8,19 +8,22 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import GenericModalContainer from "../modals/GenericModalContainer";
 import Label from "../form/Label";
-import { useHttpSubmit } from "@/hooks/physicalBookOperations/useHttpSubmit";
+import { useHttpSubmit } from "@/hooks/itemOperations/useHttpSubmit";
 import { useManageModals } from "@/hooks/useModal";
 import PhysicalBookSearcher from "../form/input/physical-book-searcher/PhysicalBookSearcher";
 import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
 import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
-import ManagePhysicalBooksTable from "./tables/operationsTable";
-import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
+import ManagePhysicalBooksTable from "../physical-books/tables/operationsTable";
+import { useItemOperation } from "@/hooks/itemOperations/itemOperations";
 import usePagination from "@/hooks/usePaginationOwn";
 import Pagination from "../pagination/OwnPaginator";
+import ManageItemOperationsTable from "./tables/manageOperationsHistoricTable";
+import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
+import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
 
-export default function ManageOperationsPage() {
+export default function ItemOperationsPage() {
     //modal handling
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [entrieModal, setEntrieModal] = useState<any>(false)
@@ -38,10 +41,11 @@ export default function ManageOperationsPage() {
     const [limit, setLimit] = useState(10)
     const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
-    const { operations, setOperations, getOperations } = useOperations({ search: searchInput, limit })
+    const { operations, setOperations, getOperations } = useItemOperation({ search: searchInput, limit })
+
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation, totalPages })
 
 
     useEffect(() => {
@@ -51,13 +55,12 @@ export default function ManageOperationsPage() {
         params.set('page', page.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation?limit=${limit}&page=${page}&search=${searchInput}`)
-            .then(res => res.json())
-            .then((data: any) => {
+        getOperations({ search: searchInput, limit, page }).then((res: any) => {
+            console.log(res)
+            setOperations(res.data)
+            totalPages.current = res.totalPages
+        })
 
-                setOperations(data.data)
-                totalPages.current = data.totalPages
-            })
     }, [searchInput, limit, page]);
 
 
@@ -90,12 +93,7 @@ export default function ManageOperationsPage() {
 
         <Pagination page={page} showInfo={true} setPage={setPage} limit={limit} totalItems={totalPages.current} />
 
-        <ManagePhysicalBooksTable onDelete={(operation: any) => {
-            setSelectedOperation(operation)
-            setDeleteModal(true)
-        }} onEdit={(id: any) => { console.log('yay') }} operations={operations}></ManagePhysicalBooksTable>
-
-
+        <ManageItemOperationsTable operations={operations}></ManageItemOperationsTable>
 
 
         {createModal &&
@@ -204,7 +202,7 @@ export default function ManageOperationsPage() {
                         <Input name="quantity"></Input>
                     </div>
                     <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
+                        <ItemSearcher></ItemSearcher>
                     </div>
 
                     <Button>Guardar</Button>
@@ -232,7 +230,7 @@ export default function ManageOperationsPage() {
                         <Input name="quantity"></Input>
                     </div>
                     <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
+                        <ItemSearcher></ItemSearcher>
                     </div>
 
                     <Button>Guardar</Button>

@@ -9,12 +9,13 @@ import BookManageCard from "../cards/BookManageCard"
 import GenericModalContainer from "../modals/GenericModalContainer"
 import { handleResponses } from "@/lib/responses/handleResponses"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import Pagination from "../pagination/Paginator"
+import Pagination from "../pagination/OwnPaginator"
 import { useManageModals } from "@/hooks/useModal"
+import usePagination from "@/hooks/usePaginationOwn"
 
 
 export const useManageBooks = ({ search, limit }: any) => {
-    const [useAllBooks, setUseAllBooks]: any = useState([])
+    const [books, setUseAllBooks]: any = useState([])
 
 
     const getBooks = async ({ search, limit }: any) => {
@@ -27,7 +28,7 @@ export const useManageBooks = ({ search, limit }: any) => {
         getBooks({ search, limit })
     }, [])
 
-    return { books: useAllBooks, setUseAllBooks, getBooks }
+    return { books, setUseAllBooks, getBooks }
 }
 
 const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks }: any) => {
@@ -43,7 +44,7 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
 
                 const result = handleResponses(response)
                 if (result) {
-                    getBooks({ search, limit }).then((res: any) => setBooks(res))
+                    getBooks({ search, limit }).then((res: any) => setBooks(res.data))
                     setCreateModal(false)
                 }
 
@@ -71,7 +72,7 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
             const result = handleResponses(data)
             console.log(data)
             if (result) {
-                getBooks({ search, limit }).then((res: any) => setBooks(res))
+                getBooks({ search, limit }).then((res: any) => setBooks(res.data))
                 setEditModal(false)
             }
         })
@@ -84,7 +85,7 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
         fetch(`/api/book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getBooks({ search, limit }).then((res: any) => setBooks(res))
+                getBooks({ search, limit }).then((res: any) => setBooks(res.data))
                 setDeleteModal(false)
             }
         })
@@ -102,6 +103,7 @@ export default function ManageBooksPage() {
     const router = useRouter();
 
     //search
+    const { page, setPage, totalPages } = usePagination()
     const [searchInput, setSearchInput] = useState('')
     const [limit, setLimit] = useState(10)
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
@@ -116,10 +118,13 @@ export default function ManageBooksPage() {
         params.set('limit', limit.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/book?limit=${limit}&search=${searchInput}`)
+        fetch(`/api/book?limit=${limit}&search=${searchInput}&page=${page}`)
             .then(res => res.json())
-            .then(setUseAllBooks)
-    }, [searchInput, limit]);
+            .then(data => {
+                setUseAllBooks(data.data)
+                totalPages.current = data.totalPages
+            })
+    }, [searchInput, limit, page]);
 
 
 
@@ -143,6 +148,8 @@ export default function ManageBooksPage() {
             <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
 
         </div>
+
+        <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>
 
         <div className="grid grid-cols-3 gap-3">
             {books && books.map((book: any) => <BookManageCard onDelete={() => {

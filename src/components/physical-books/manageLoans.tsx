@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useManageBooks } from "../books/manageBooksPage";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,8 @@ import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
 import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
+import Pagination from "../pagination/OwnPaginator";
+import usePagination from "@/hooks/usePaginationOwn";
 
 export default function ManageLoansPage() {
     //modal handling
@@ -29,25 +31,29 @@ export default function ManageLoansPage() {
     const [searchInput, setSearchInput] = useState('')
     const [limit, setLimit] = useState(10)
     const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
+    const { page, setPage, totalPages } = usePagination()
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput })
+    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, setPage })
 
 
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', searchInput)
         params.set('limit', limit.toString())
+        params.set('page', page.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${searchInput}`)
+        fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${searchInput}&page=${page}`)
             .then(res => res.json())
             .then((data: any) => {
-                console.log(data)
-                setLoans(data)
+
+                setLoans(data.data)
+                totalPages.current = data.totalPages
+                console.log(totalPages)
             })
-    }, [searchInput, limit]);
+    }, [searchInput, limit, page]);
 
 
 
@@ -72,13 +78,14 @@ export default function ManageLoansPage() {
 
         </div>
 
+
+
+        <Pagination page={page} setPage={setPage} totalItems={totalPages.current || 0} limit={limit} showInfo={true}></Pagination>
+
         <ManageLoansTable onSettle={(id) => {
 
             handleSettle(id)
-            getLoans({ search: searchInput, limit }).then(data => {
-                console.log(data, 'asdads')
-                setLoans(data)
-            })
+
 
 
         }} onEdit={() => { console.log('yay') }} loans={loans}></ManageLoansTable>

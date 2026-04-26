@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useManageBooks } from "../books/manageBooksPage";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -8,25 +8,24 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import GenericModalContainer from "../modals/GenericModalContainer";
 import Label from "../form/Label";
-import { useHttpSubmit } from "@/hooks/physicalBookOperations/useHttpSubmit";
+import { useHttpSubmit } from "@/hooks/itemLoans/useHttpRequests";
 import { useManageModals } from "@/hooks/useModal";
 import PhysicalBookSearcher from "../form/input/physical-book-searcher/PhysicalBookSearcher";
 import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
 import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
-import ManagePhysicalBooksTable from "./tables/operationsTable";
-import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
-import usePagination from "@/hooks/usePaginationOwn";
 import Pagination from "../pagination/OwnPaginator";
+import usePagination from "@/hooks/usePaginationOwn";
+import useItemLoans from "@/hooks/itemLoans/useItemLoans";
+import ManageItemLoansTable from "./tables/manageLoansTable";
+import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
 
-export default function ManageOperationsPage() {
+export default function ManageItemLoansPage() {
     //modal handling
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
-    const [entrieModal, setEntrieModal] = useState<any>(false)
-    const [dropModal, setDropModal] = useState<any>(false)
+    const [selectedItem, setSelectedItem]: any = useState(null)
     const [selectedBook, setSelectedBook]: any = useState(null)
-    const [selectedOperation, setSelectedOperation] = useState<any>(null)
 
     //search handling
     const pathname = usePathname();
@@ -34,14 +33,13 @@ export default function ManageOperationsPage() {
 
     //search
     const [searchInput, setSearchInput] = useState('')
-    const { page, totalPages, setPage } = usePagination()
     const [limit, setLimit] = useState(10)
     const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
+    const { page, setPage, totalPages } = usePagination()
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
-    const { operations, setOperations, getOperations } = useOperations({ search: searchInput, limit })
-
+    const { itemLoans, setItemLoans, getItemLoans } = useItemLoans({ search: searchInput, limit, page })
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation })
+    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ setItemLoans, getItemLoans, page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, setPage })
 
 
     useEffect(() => {
@@ -51,25 +49,21 @@ export default function ManageOperationsPage() {
         params.set('page', page.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation?limit=${limit}&page=${page}&search=${searchInput}`)
+        fetch(`/api/inventory-operation/loan?limit=${limit}&search=${searchInput}&page=${page}`)
             .then(res => res.json())
             .then((data: any) => {
 
-                setOperations(data.data)
+                setItemLoans(data.data)
                 totalPages.current = data.totalPages
+                console.log(totalPages)
             })
     }, [searchInput, limit, page]);
 
 
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
-        <div className="flex gap-2 justify-center">
-            <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
-            <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
-            {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
-        </div>
-
+        <h1 className="text-3xl font-bold">Gestionar Préstamos</h1>
+        <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
 
 
         <div className="flex gap-3">
@@ -88,14 +82,11 @@ export default function ManageOperationsPage() {
 
         </div>
 
-        <Pagination page={page} showInfo={true} setPage={setPage} limit={limit} totalItems={totalPages.current} />
-
-        <ManagePhysicalBooksTable onDelete={(operation: any) => {
-            setSelectedOperation(operation)
-            setDeleteModal(true)
-        }} onEdit={(id: any) => { console.log('yay') }} operations={operations}></ManagePhysicalBooksTable>
 
 
+        <Pagination page={page} setPage={setPage} totalItems={totalPages.current || 0} limit={limit} showInfo={true}></Pagination>
+
+        <ManageItemLoansTable onSettle={(id: any) => handleSettle(id)} loanOperations={itemLoans}></ManageItemLoansTable>
 
 
         {createModal &&
@@ -104,10 +95,10 @@ export default function ManageOperationsPage() {
                 <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
 
                     <div>
-                        <PhysicalBookSearcher></PhysicalBookSearcher>
+                        <ItemSearcher></ItemSearcher>
                     </div>
 
-                    <input type="hidden" name="operation" value="PRESTAMO"></input>
+
                     <div>
                         <Label>Cantidad</Label>
                         <Input name="quantity" placeholder="30.."></Input>
@@ -171,12 +162,12 @@ export default function ManageOperationsPage() {
                 </form>
             </GenericModalContainer>}
 
-        {(deleteModal && selectedOperation) &&
+        {(deleteModal && selectedBook) &&
             <GenericModalContainer>
                 <div className="flex-1 flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)} className="flex flex-col gap-2">
 
-                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedOperation.book.title}?</h3>
+                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedBook.title}?</h3>
                     <div className="flex gap-3 justify-center">
                         <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
                         <Button className="bg-red-600">Eliminar</Button>
@@ -185,59 +176,5 @@ export default function ManageOperationsPage() {
                 </form>
             </GenericModalContainer>}
 
-        {(entrieModal) &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setEntrieModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEntrieSubmit(e)} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Nombre del Encargado</Label>
-                        <Input name="personNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Apellido del Encargado</Label>
-                        <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
-                    </div>
-
-                    <Button>Guardar</Button>
-
-                </form>
-            </GenericModalContainer>}
-
-
-        {(dropModal) &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setDropModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDropSubmit(e)} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Nombre del Encargado</Label>
-                        <Input name="personNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Apellido del Encargado</Label>
-                        <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
-                    </div>
-
-                    <Button>Guardar</Button>
-
-                </form>
-            </GenericModalContainer>}
     </section>
 }
