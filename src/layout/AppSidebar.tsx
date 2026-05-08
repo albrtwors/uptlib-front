@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import {
@@ -21,18 +21,21 @@ import {
 import SidebarWidget from "./SidebarWidget";
 import { oswald } from "@/app/(full-width-pages)/(auth)/layout";
 
+type Role = 'USER' | 'ADMIN' | 'SUPERADMIN'
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  roles?: Role[];
+  subItems?: { name: string; path: string; pro?: boolean; new?: boolean; roles?: Role[] }[];
 };
 
-const navItems: NavItem[] = [
+let navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
+    roles: ['USER', 'ADMIN', 'SUPERADMIN'],
     subItems: [{ name: "Principal", path: "/", pro: false }],
   },
   {
@@ -41,7 +44,8 @@ const navItems: NavItem[] = [
     path: "/books",
     subItems: [{ name: "Ver todos los libros", path: "/books", pro: false },
     { name: "Tus libros favoritos", path: "/books/favorites", pro: false },
-    { name: "Gestionar Libros", path: "/books/manage", pro: false }
+    { name: "Gestionar Libros", roles: ['ADMIN', 'SUPERADMIN'], path: "/books/manage", pro: false },
+
 
     ],
   },
@@ -49,6 +53,7 @@ const navItems: NavItem[] = [
     icon: <div>📖</div>,
     name: "Libros físicos",
     path: "/physical-books",
+    roles: ['ADMIN', 'SUPERADMIN'],
     subItems: [{ name: "Operaciones", path: "/physical-books/operations", pro: false },
     { name: "Gestionar Libros físicos", path: "/physical-books/manage", pro: false },
     { name: "Gestionar Préstamos", path: "/physical-books/loans", pro: false }
@@ -58,11 +63,22 @@ const navItems: NavItem[] = [
     icon: <div>📝</div>,
     name: "Inventario",
     path: "/inventory",
+    roles: ['ADMIN', 'SUPERADMIN'],
     subItems: [{ name: "Operaciones", path: "/inventory/operations", pro: false },
     { name: "Gestionar el Inventario", path: "/inventory", pro: false },
     { name: "Gestionar Préstamos", path: "/inventory/loans", pro: false },
     ],
   },
+  {
+    icon: <div>🖥️</div>,
+    name: "Admin",
+    path: "/admin/logs",
+    roles: ['ADMIN', 'SUPERADMIN'],
+    subItems: [{ name: "Bitácora de Usuario", path: "/admin/logs", pro: false },
+    { name: "Gestionar Usuarios", path: "/admin/users", pro: false },
+    { name: "Base de datos", path: "/admin/database", pro: false },
+    ],
+  }
 
 
 ];
@@ -71,9 +87,32 @@ const othersItems: NavItem[] = [
 
 ];
 
+const filterNavItemsByRole = (items: NavItem[] | any, role: Role) => {
+  return items.filter((item: any) => {
+    if (!item.roles) return true
+    return item.roles.includes(role as Role)
+  })
+}
+
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const [role, setRole] = useState('')
   const pathname = usePathname();
+  const router = useRouter()
+  useEffect(() => {
+    fetch('/api/users/role').then(res => res.json()).then(role => {
+      setRole(role.role)
+
+      navItems = filterNavItemsByRole(navItems, role.role)
+      navItems.map((item: any, index: any) => {
+        item.subItems = filterNavItemsByRole(item.subItems, role.role)
+      })
+    })
+
+  }, [router])
+
+
+
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -256,6 +295,7 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
@@ -291,7 +331,8 @@ const AppSidebar: React.FC = () => {
       </div>
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
-          <div className="flex flex-col gap-4">
+          {role == '' && <div className="flex items-center justify-center"> <div className="size-10 animate-spin flex items-center justify-center bg-blue-600 rounded-full"><div className="size-2 bg-white absolute mt-8 "></div><div className="rounded-full size-8 bg-white"></div></div> </div>}
+          {role != '' && <div className="flex flex-col gap-4">
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
@@ -308,7 +349,7 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(navItems, "main")}
             </div>
 
-            <div className="">
+            {/* <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
                   ? "lg:justify-center"
@@ -322,8 +363,9 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
-          </div>
+            </div> */}
+          </div>}
+
         </nav>
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
       </div>

@@ -28,7 +28,7 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
     const loanOperations = loans?.filter(loan => loan.type === 'PRESTAMO');
 
     return (
-        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200">
             <div className="overflow-x-auto">
                 <table className="w-full table-auto min-w-[850px]">
                     <thead>

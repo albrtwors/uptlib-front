@@ -19,7 +19,12 @@ import ManagePhysicalBooksTable from "./tables/manageTable"
 import usePagination from "@/hooks/usePaginationOwn"
 import Pagination from "../pagination/OwnPaginator"
 import CategoryFilter from "../filters/physical-books/categoryFilter"
+import dynamic from "next/dynamic"
 
+const ExportPDFButton = dynamic(
+    () => import('./pdf/exportPhysicalBooksButton'),
+    { ssr: false }
+)
 
 export default function ManagePhysicalBooksPage() {
     //modal handling
@@ -69,7 +74,7 @@ export default function ManagePhysicalBooksPage() {
 
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Gestionar Libros Físicos</h1>
-        <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
+
 
 
         <div className="flex gap-3">
@@ -88,6 +93,7 @@ export default function ManagePhysicalBooksPage() {
                     }
 
                 }}></Input>
+
             </div>
             <CategoryFilter setSearchHandler={setCategory}></CategoryFilter>
 
@@ -100,6 +106,8 @@ export default function ManagePhysicalBooksPage() {
                     {CATEGORIES.map((category, index) => <option key={index} value={category}>{category}</option>)}
                 </select>
             </div>
+            <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
+            <ExportPDFButton items={books} title={'Reporte de Libros Fisicos'}></ExportPDFButton>
         </div>
 
 

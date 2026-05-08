@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface Option {
   value: string;
@@ -9,6 +9,7 @@ interface SelectProps {
   options: Option[];
   placeholder?: string;
   onChange: any;
+  name?: string;
   className?: string;
   defaultValue?: string;
 }
@@ -17,6 +18,7 @@ const Select: React.FC<SelectProps> = ({
   options,
   placeholder = "Select an option",
   onChange,
+  name,
   className = "",
   defaultValue = "",
 }) => {
@@ -28,6 +30,12 @@ const Select: React.FC<SelectProps> = ({
     setSelectedValue(value);
     onChange(value); // Trigger parent handler
   };
+  useEffect(() => {
+    setSelectedValue(defaultValue)
+    console.log('asd')
+  }, [defaultValue])
+
+
 
   return (
     <select
@@ -36,6 +44,7 @@ const Select: React.FC<SelectProps> = ({
         : "text-gray-400 dark:text-gray-400"
         } ${className}`}
       value={selectedValue}
+      name={name}
       onChange={onChange}
     >
       {/* Placeholder option */}

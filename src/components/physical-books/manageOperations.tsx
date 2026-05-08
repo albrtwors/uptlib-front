@@ -19,6 +19,14 @@ import ManagePhysicalBooksTable from "./tables/operationsTable";
 import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
 import usePagination from "@/hooks/usePaginationOwn";
 import Pagination from "../pagination/OwnPaginator";
+import dynamic from "next/dynamic";
+
+const ExportPDFButton = dynamic(
+    () => import('./pdf/exportOperationsButton'),
+    { ssr: false }
+)
+
+
 
 export default function ManageOperationsPage() {
     //modal handling
@@ -41,7 +49,7 @@ export default function ManageOperationsPage() {
     const { operations, setOperations, getOperations } = useOperations({ search: searchInput, limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation, totalPages })
 
 
     useEffect(() => {
@@ -64,28 +72,33 @@ export default function ManageOperationsPage() {
 
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
-        <div className="flex gap-2 justify-center">
-            <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
-            <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
-            {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
-        </div>
-
 
 
         <div className="flex gap-3">
+            <div>
+                <Label>Cantidad por Página</Label>
+                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const limi = parseInt(e.target.value)
+                    if (!isNaN(limi) && limi > 0) {
+                        setLimit(parseInt(e.target.value))
+                    } else {
+                        setLimit(10)
+                    }
 
-            <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const limi = parseInt(e.target.value)
-                if (!isNaN(limi) && limi > 0) {
-                    setLimit(parseInt(e.target.value))
-                } else {
-                    setLimit(10)
-                }
+                }}></Input>
+            </div>
+            <div>
+                <Label>Buscar por Nombre del Libro</Label>
+                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+            </div>
+            <div className="flex gap-2 justify-center">
+                <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
+                <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+                {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
+            </div>
 
-            }}></Input>
 
-            <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-
+            <ExportPDFButton items={operations} title={'Reporte de operaciones de Libros físicos'} ></ExportPDFButton>
         </div>
 
         <Pagination page={page} showInfo={true} setPage={setPage} limit={limit} totalItems={totalPages.current} />

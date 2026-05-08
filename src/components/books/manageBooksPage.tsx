@@ -130,7 +130,7 @@ export default function ManageBooksPage() {
 
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Gestionar Libros <span className="text-blue-600">(admin)</span></h1>
-        <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
+
 
 
         <div className="flex gap-3">
@@ -146,7 +146,7 @@ export default function ManageBooksPage() {
             }}></Input>
 
             <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-
+            <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
         </div>
 
         <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>

@@ -17,6 +17,13 @@ import ItemTypeSearcher from "../form/input/types/ItemTypeSearcher"
 import Pagination from "../pagination/OwnPaginator"
 import usePagination from "@/hooks/usePaginationOwn"
 import TypeFilter from "../filters/items/TypeFilter"
+import dynamic from 'next/dynamic';
+
+// Esto le dice a Next: "No intentes renderizar esto en el servidor, espera al navegador"
+const ExportItemsPDFButton = dynamic(
+    () => import('./pdf/exportButton'),
+    { ssr: false }
+);
 
 
 export const useItems = ({ search, limit }: any) => {
@@ -79,7 +86,7 @@ export default function InventoryManagePage({ }) {
     return <div className="flex flex-col gap-3">
 
         <h1 className="text-3xl font-bold">Inventario</h1>
-        <Button onClick={() => setCreateModal(true)}>Añadir Item</Button>
+
         <div className="flex gap-3">
 
             <div>
@@ -102,6 +109,8 @@ export default function InventoryManagePage({ }) {
             </div>
 
             <TypeFilter setSearchHandler={setType}></TypeFilter>
+            <Button onClick={() => setCreateModal(true)}>Añadir Item</Button>
+            <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
         </div>
 
         <Pagination totalItems={totalPages.current} limit={limit} page={page} setPage={setPage}></Pagination>

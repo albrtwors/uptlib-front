@@ -20,6 +20,17 @@ import usePagination from "@/hooks/usePaginationOwn";
 import useItemLoans from "@/hooks/itemLoans/useItemLoans";
 import ManageItemLoansTable from "./tables/manageLoansTable";
 import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
+import ExportItemsPDFButton from "./pdf/exportButton";
+import dynamic from "next/dynamic";
+
+
+const ExportPDFButton = dynamic(
+    () => import('./pdf/exportLoansButton'),
+    { ssr: false }
+);
+
+
+
 
 export default function ManageItemLoansPage() {
     //modal handling
@@ -63,23 +74,30 @@ export default function ManageItemLoansPage() {
 
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Gestionar Préstamos</h1>
-        <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+
 
 
         <div className="flex gap-3">
 
-            <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const limi = parseInt(e.target.value)
-                if (!isNaN(limi) && limi > 0) {
-                    setLimit(parseInt(e.target.value))
-                } else {
-                    setLimit(10)
-                }
+            <div>
+                <Label>Cantidad por Pagina</Label>
+                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const limi = parseInt(e.target.value)
+                    if (!isNaN(limi) && limi > 0) {
+                        setLimit(parseInt(e.target.value))
+                    } else {
+                        setLimit(10)
+                    }
 
-            }}></Input>
+                }}></Input>
+            </div>
 
-            <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-
+            <div>
+                <Label>Buscar por Nombre del Item</Label>
+                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+            </div>
+            <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+            <ExportPDFButton items={itemLoans} title="Reporte de Prestamos"></ExportPDFButton>
         </div>
 
 
