@@ -6,6 +6,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
 
     const handleCreateAuthor = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
 
         fetch('/api/author', {
@@ -21,6 +22,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
     }
     const handleDeleteAuthor = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const form = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/author/${form.authorId}`, {
             method: 'DELETE', body: JSON.stringify(form), headers: {
@@ -33,6 +35,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
 
     const handleCreateGenre = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
 
         fetch('/api/category', {
@@ -48,6 +51,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
     }
     const handleDeleteGenre = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const form = Object.fromEntries(new FormData(e.currentTarget).entries())
 
         fetch(`/api/category/${form.categoryId}`, { method: 'DELETE' }).then(res => res.json()).then(data => {
@@ -61,6 +65,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
@@ -94,6 +99,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
@@ -119,6 +125,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/physical-book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)

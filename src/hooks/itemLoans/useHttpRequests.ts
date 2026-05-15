@@ -6,6 +6,7 @@ export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, get
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
@@ -40,10 +41,12 @@ export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, get
 
 
     const handleSettle = (id: any) => {
+        SwalAlert.loading()
         fetch(`/api/inventory-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
             return res.json()
         }).then(data => {
             handleResponses(data)
+
             getItemLoans({ search, limit, page }).then((res: any) => {
                 setItemLoans(res.data)
                 setPage(1)
@@ -57,6 +60,7 @@ export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, get
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
@@ -81,6 +85,7 @@ export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, get
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/physical-book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)

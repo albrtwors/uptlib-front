@@ -21,7 +21,7 @@ import {
 import SidebarWidget from "./SidebarWidget";
 import { oswald } from "@/app/(full-width-pages)/(auth)/layout";
 
-type Role = 'USER' | 'ADMIN' | 'SUPERADMIN'
+type Role = 'USER' | 'ADMIN' | 'LIBRARIAN'
 
 type NavItem = {
   name: string;
@@ -35,7 +35,7 @@ let navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    roles: ['USER', 'ADMIN', 'SUPERADMIN'],
+    roles: ['USER', 'ADMIN', 'LIBRARIAN'],
     subItems: [{ name: "Principal", path: "/", pro: false }],
   },
   {
@@ -44,7 +44,7 @@ let navItems: NavItem[] = [
     path: "/books",
     subItems: [{ name: "Ver todos los libros", path: "/books", pro: false },
     { name: "Tus libros favoritos", path: "/books/favorites", pro: false },
-    { name: "Gestionar Libros", roles: ['ADMIN', 'SUPERADMIN'], path: "/books/manage", pro: false },
+    { name: "Gestionar Libros", roles: ['ADMIN', 'LIBRARIAN'], path: "/books/manage", pro: false },
 
 
     ],
@@ -53,7 +53,7 @@ let navItems: NavItem[] = [
     icon: <div>📖</div>,
     name: "Libros físicos",
     path: "/physical-books",
-    roles: ['ADMIN', 'SUPERADMIN'],
+    roles: ['ADMIN', 'LIBRARIAN'],
     subItems: [{ name: "Operaciones", path: "/physical-books/operations", pro: false },
     { name: "Gestionar Libros físicos", path: "/physical-books/manage", pro: false },
     { name: "Gestionar Préstamos", path: "/physical-books/loans", pro: false }
@@ -63,7 +63,7 @@ let navItems: NavItem[] = [
     icon: <div>📝</div>,
     name: "Inventario",
     path: "/inventory",
-    roles: ['ADMIN', 'SUPERADMIN'],
+    roles: ['ADMIN', 'LIBRARIAN'],
     subItems: [{ name: "Operaciones", path: "/inventory/operations", pro: false },
     { name: "Gestionar el Inventario", path: "/inventory", pro: false },
     { name: "Gestionar Préstamos", path: "/inventory/loans", pro: false },
@@ -73,7 +73,7 @@ let navItems: NavItem[] = [
     icon: <div>🖥️</div>,
     name: "Admin",
     path: "/admin/logs",
-    roles: ['ADMIN', 'SUPERADMIN'],
+    roles: ['ADMIN'],
     subItems: [{ name: "Bitácora de Usuario", path: "/admin/logs", pro: false },
     { name: "Gestionar Usuarios", path: "/admin/users", pro: false },
     { name: "Base de datos", path: "/admin/database", pro: false },

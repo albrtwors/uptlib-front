@@ -12,8 +12,7 @@ export default function Page() {
     const params = useParams()
 
     useEffect(() => {
-
-        fetch(`${base_url}/book/${params.id}`, {
+        fetch(`/api/book/${params.id}`, {
             credentials: 'include'
         }).then(res => res.json()).then(data => {
             setBook(data)
@@ -46,7 +45,7 @@ export default function Page() {
 
                 <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
                     <iframe
-                        src={`${base_url}${book.routepdf}`}
+                        src={`${book.routepdf}`}
                         className="w-full h-[80vh] md:h-[85vh] border-0"
                         title={book.title}
                     />

@@ -8,7 +8,7 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
-
+        SwalAlert.loading()
         fetch(`/api/physical-book-operation/loan`, {
             method: 'POST', body: JSON.stringify(data), headers: {
                 'Content-Type': 'application/json'
@@ -41,6 +41,7 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
 
 
     const handleSettle = (id: any) => {
+        SwalAlert.loading()
         fetch(`/api/physical-book-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
             return res.json()
         }).then(data => {
@@ -58,6 +59,7 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
@@ -82,6 +84,7 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/physical-book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)

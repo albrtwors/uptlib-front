@@ -6,6 +6,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
 
     const handleEntrieSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         console.log(Object.fromEntries(formData.entries()))
         fetch(`/api/inventory-operation/entries`, {
@@ -29,6 +30,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
@@ -62,6 +64,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
 
     const handleDropSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         console.log(Object.fromEntries(formData.entries()))
         fetch(`/api/inventory-operation/drops`, {
@@ -85,6 +88,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
     }
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
@@ -105,6 +109,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        SwalAlert.loading()
         const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/physical-book-operation/${selectedOperation.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)

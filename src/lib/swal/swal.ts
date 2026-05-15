@@ -5,11 +5,25 @@ export class SwalAlert {
             customClass: {
                 container: 'modal'
             },
-
             title: options.title,
             text: options.text,
             icon: options.icon,
             confirmButtonText: 'Aceptar',
         })
+    }
+
+    static loading() {
+        Swal.fire({
+            customClass: {
+                container: 'modal'
+            },
+            title: 'Cargando...',
+            text: 'Por favor, espere un momento.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
     }
 }

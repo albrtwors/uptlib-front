@@ -173,7 +173,7 @@ export default function InventoryManagePage({ }) {
                         <Input defaultValue={selectedItem.totalStock} name='stock' type='number' placeholder="Cantidad..."></Input>
                     </div>
 
-                    <ItemTypeSearcher defaultValue={selectedItem}></ItemTypeSearcher>
+                    <ItemTypeSearcher defaultValue={selectedItem.type}></ItemTypeSearcher>
 
                     <Button>Subir</Button>
                 </form>
