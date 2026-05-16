@@ -66,7 +66,7 @@ export default function ManageLoansPage() {
         <h1 className="text-3xl font-bold dark:text-white">Gestionar Préstamos</h1>
 
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
 
             <div>
 
@@ -137,7 +137,7 @@ export default function ManageLoansPage() {
 
                     </div>
                     <div>
-                        <Label>Observaciones</Label>
+                        <Label isRequired={false}>Observaciones</Label>
                         <textarea name="observations" className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"></textarea>
                     </div>
                     {/* <Label>Pdf</Label>

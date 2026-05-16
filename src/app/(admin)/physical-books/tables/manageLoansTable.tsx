@@ -4,7 +4,7 @@ interface BookOperation {
     id: string;
     bookId: string;
     bookTitle?: string;
-    type: string; // 'LOAN' | 'RETURN' | etc.
+    type: string;
     quantity: number;
     observations?: string;
     personId?: string;
@@ -13,23 +13,24 @@ interface BookOperation {
     createdAt: string;
     updatedAt: string;
     book: {
-        title: string
-    }
+        title: string;
+    };
 }
 
 interface ManageLoansTableProps {
     loans: BookOperation[];
-    onEdit: (loan: any) => void;
-    onSettle: (loan: any) => void;
+    onEdit: (loan: BookOperation) => void;
+    onSettle: (id: string) => void;
 }
 
 export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoansTableProps) {
-    // Filtrar solo préstamos (type === 'LOAN')
-    const loanOperations = loans?.filter(loan => loan.type === 'PRESTAMO');
+    // Filtrar solo préstamos (type === 'PRESTAMO')
+    const loanOperations = loans?.filter(loan => loan.type === 'PRESTAMO') || [];
 
     return (
-        <div className="p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200">
-            <div className="overflow-x-auto">
+        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* Vista de Tabla - Escritorio (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
                 <table className="w-full table-auto min-w-[850px]">
                     <thead>
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -73,7 +74,7 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                     {/* Libro */}
                                     <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
                                         <div className="font-semibold text-gray-900 truncate mb-1">
-                                            {loan.book.title || `Libro ID: ${loan.bookId}`}
+                                            {loan.book?.title || loan.bookTitle || `Libro ID: ${loan.bookId}`}
                                         </div>
                                         <div className="text-sm text-gray-500">ID: {loan.bookId}</div>
                                     </td>
@@ -126,35 +127,33 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                             {daysAgo} días
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            {new Date(loan.updatedAt).toLocaleDateString('es-ES')}
+                                            Act: {new Date(loan.updatedAt).toLocaleDateString('es-ES')}
                                         </div>
                                     </td>
 
-                                    {/* ✅ BOTONES ACCIONES */}
+                                    {/* Acciones Escritorio */}
                                     <td className="px-4 py-4 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                            {/* Botón SALDAR */}
                                             <button
                                                 onClick={() => onSettle(loan.id)}
-                                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
+                                                className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
                                                 title="Marcar como devuelto"
                                             >
-                                                <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
-                                                <span className="hidden sm:inline">Saldar</span>
+                                                <span>Saldar</span>
                                             </button>
 
-                                            {/* Botón EDITAR */}
                                             <button
                                                 onClick={() => onEdit(loan)}
-                                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
-                                                title="Editar operación"
+                                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all flex items-center gap-1 text-xs font-medium"
+                                                title="Editar préstamo"
                                             >
-                                                <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
-                                                <span className="hidden sm:inline">Editar</span>
+                                                <span>Editar</span>
                                             </button>
                                         </div>
                                     </td>
@@ -165,95 +164,103 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                 </table>
             </div>
 
-            {/* Mobile Cards */}
-            <div className="md:hidden mt-4 space-y-3">
+            {/* Mobile Cards - Móvil (md:hidden) */}
+            <div className="md:hidden space-y-3">
                 {loanOperations.map((loan) => {
                     const daysAgo = Math.floor(
                         (new Date().getTime() - new Date(loan.createdAt).getTime()) / (1000 * 3600 * 24)
                     );
 
                     return (
-                        <div key={loan.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group/card">
+                        <div key={loan.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                            {/* Encabezado */}
                             <div className="flex justify-between items-start mb-3">
-                                <h3 className="font-bold text-lg text-gray-900 truncate flex-1 pr-4">
-                                    {loan.bookTitle || `Libro ID: ${loan.bookId}`}
-                                </h3>
-                                <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
+                                <div className="flex-1 pr-2">
+                                    <h3 className="font-bold text-base text-gray-900 line-clamp-2">
+                                        {loan.book?.title || loan.bookTitle || `Libro ID: ${loan.bookId}`}
+                                    </h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">ID Libro: {loan.bookId}</p>
+                                </div>
+                                <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full shrink-0">
                                     {loan.type}
                                 </span>
                             </div>
 
+                            {/* Detalles */}
                             <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
                                 <div>
-                                    <span className="font-medium text-gray-900">Persona:</span>
-                                    <div className="font-semibold text-gray-900 mt-1">
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Persona</span>
+                                    <div className="font-semibold text-gray-900 mt-0.5 break-words">
                                         {loan.personNames} {loan.personSurNames}
                                     </div>
+                                    {loan.personId && <span className="text-[10px] text-gray-400 block">ID: {loan.personId}</span>}
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-900">Cantidad:</span>
-                                    <div className="text-2xl font-bold text-orange-600 mt-1">
-                                        {loan.quantity}
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Cantidad</span>
+                                    <div className="text-xl font-bold text-orange-600 mt-0.5">
+                                        {loan.quantity} <span className="text-xs font-normal text-gray-500">uds.</span>
                                     </div>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-900">Inicio:</span>
-                                    <span className="ml-1 block mt-1 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Fecha Préstamo</span>
+                                    <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded mt-1">
                                         {new Date(loan.createdAt).toLocaleDateString('es-ES')}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-gray-900">Días:</span>
-                                    <div className={`text-lg font-bold mt-1 ${daysAgo > 7 ? 'text-red-600' : daysAgo > 3 ? 'text-orange-600' : 'text-green-600'
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Tiempo Transcurrido</span>
+                                    <div className={`text-base font-bold mt-0.5 ${daysAgo > 7 ? 'text-red-600' : daysAgo > 3 ? 'text-orange-600' : 'text-green-600'
                                         }`}>
-                                        {daysAgo}
+                                        {daysAgo} días
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Observaciones */}
                             {loan.observations && (
-                                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <span className="font-medium text-gray-900 text-sm block mb-1">Observaciones:</span>
-                                    <p className="text-sm text-yellow-800">{loan.observations}</p>
+                                <div className="mb-4 p-2.5 bg-yellow-50 border border-yellow-100 rounded-lg">
+                                    <span className="font-semibold text-gray-800 text-xs block mb-0.5">Observaciones:</span>
+                                    <p className="text-xs text-yellow-900 leading-relaxed">{loan.observations}</p>
                                 </div>
                             )}
 
-                            {/* ✅ BOTONES MOBILE */}
-                            <div className="flex gap-2 pt-2 border-t border-gray-100">
+                            {/* Acciones Móviles */}
+                            <div className="flex gap-2 pt-3 border-t border-gray-100">
                                 <button
-                                    onClick={() => onSettle(loan)}
-                                    className="flex-1 p-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                                    onClick={() => onSettle(loan.id)}
+                                    className="flex-1 p-2 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                     Saldar
                                 </button>
                                 <button
                                     onClick={() => onEdit(loan)}
-                                    className="flex-1 p-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                                    className="flex-1 p-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
                                     Editar
                                 </button>
                             </div>
 
-                            <div className="text-xs text-gray-500 mt-2 text-center">
-                                ID: {loan.id.slice(-8)}
+                            <div className="text-[10px] text-gray-400 mt-2 text-center font-mono">
+                                OP ID: {loan.id}
                             </div>
                         </div>
                     );
                 })}
             </div>
 
+            {/* Estado Vacío */}
             {loanOperations.length === 0 && (
                 <div className="text-center py-12">
-                    <div className="text-gray-400 text-lg mb-2">📚</div>
-                    <p className="text-gray-500 text-sm">No hay préstamos activos</p>
+                    <div className="text-gray-400 text-2xl mb-2">📚</div>
+                    <p className="text-gray-500 text-sm font-medium">No hay préstamos activos registrados</p>
                 </div>
             )}
         </div>
-    )
+    );
 }

@@ -84,7 +84,7 @@ export default function ItemOperationsPage() {
 
 
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
             <div>
                 <Label>Cantidad Por Pagina</Label>
                 <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +143,7 @@ export default function ItemOperationsPage() {
 
 
                     <div>
-                        <Label>Cédula del Prestatario (solo números)</Label>
+                        <Label isRequired={false}>Cédula del Prestatario (solo números)</Label>
                         <Input name="personId" placeholder="ej: 31758635"></Input>
 
                     </div>

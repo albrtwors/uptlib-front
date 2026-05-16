@@ -77,7 +77,7 @@ export default function ManageItemLoansPage() {
 
 
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
 
             <div>
                 <Label>Cantidad por Pagina</Label>
@@ -134,12 +134,12 @@ export default function ManageItemLoansPage() {
 
 
                     <div>
-                        <Label>Cédula del Prestatario (solo números)</Label>
+                        <Label isRequired={false}>Cédula del Prestatario (solo números)</Label>
                         <Input name="personId" placeholder="ej: 31758635"></Input>
 
                     </div>
                     <div>
-                        <Label>Observaciones</Label>
+                        <Label isRequired={false}>Observaciones</Label>
                         <textarea name="observations" className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"></textarea>
                     </div>
                     {/* <Label>Pdf</Label>
@@ -159,7 +159,7 @@ export default function ManageItemLoansPage() {
                         <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz"></Input>
                     </div>
                     <div>
-                        <Label>Descripción</Label>
+                        <Label isRequired={false}>Descripción</Label>
                         <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
                     </div>
 

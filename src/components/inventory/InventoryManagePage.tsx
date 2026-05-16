@@ -87,7 +87,7 @@ export default function InventoryManagePage({ }) {
 
         <h1 className="text-3xl font-bold">Inventario</h1>
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
 
             <div>
                 <Label>Nombre del Item</Label>
@@ -128,12 +128,12 @@ export default function InventoryManagePage({ }) {
                     </div>
 
                     <div className="flex flex-col">
-                        <Label>Código</Label>
+                        <Label isRequired={false}>Código</Label>
                         <Input name='code' placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
-                        <Label>Descripcion</Label>
+                        <Label isRequired={false}>Descripcion</Label>
                         <Input name='description' placeholder="Descripcion"></Input>
                     </div>
 
@@ -159,12 +159,12 @@ export default function InventoryManagePage({ }) {
                     </div>
 
                     <div className="flex flex-col">
-                        <Label>Código</Label>
+                        <Label isRequired={false}>Código</Label>
                         <Input defaultValue={selectedItem.code} name='code' placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
-                        <Label>Descripcion</Label>
+                        <Label isRequired={false}>Descripcion</Label>
                         <Input defaultValue={selectedItem.description} name='description' placeholder="Descripcion"></Input>
                     </div>
 

@@ -173,7 +173,7 @@ export default function ManageBooksPage() {
                         <Input name="title" placeholder="Mago de Oz"></Input>
                     </div>
                     <div>
-                        <Label>Descripción</Label>
+                        <Label isRequired={false}>Descripción</Label>
                         <Input name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
                     </div>
                     <div>
@@ -201,7 +201,7 @@ export default function ManageBooksPage() {
                         <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz"></Input>
                     </div>
                     <div>
-                        <Label>Descripción</Label>
+                        <Label isRequired={false}>Descripción</Label>
                         <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
                     </div>
 

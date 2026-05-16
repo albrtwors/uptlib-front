@@ -66,7 +66,7 @@ export default function ManageUsersPage() {
 
     return <div className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Gestionar Usuarios</h1>
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
 
             <div>
                 <Label>Cantidad por Pagina</Label>

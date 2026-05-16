@@ -74,7 +74,7 @@ export default function ManageOperationsPage() {
         <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
 
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
             <div>
                 <Label>Cantidad por Página</Label>
                 <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

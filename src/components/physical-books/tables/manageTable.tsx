@@ -1,201 +1,218 @@
 "use client"
 
 export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: any) {
-    return <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="overflow-x-auto">
-            <table className="w-full table-auto min-w-[850px]">
-                <thead>
-                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Título
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
-                            ISBN
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
-                            Año
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                            Autor
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                            Categoría
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
-                            Editorial
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Stock
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                            Status
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
-                            Acciones
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                    {books.map((book: any) => (
-                        <tr
-                            key={book.id}
-                            className="hover:bg-gray-50 transition-colors group"
-                        >
-                            {/* Título */}
-                            <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
-                                <div className="font-semibold text-gray-900 truncate mb-1">{book.title}</div>
-                                <div className="text-sm text-gray-500">ID: {book.id}</div>
-                            </td>
-
-                            {/* ISBN */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
-                                <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                    {book.isbn || 'N/A'}
-                                </span>
-                            </td>
-
-                            {/* Año */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell">
-                                {book.yearOfPublication || 'N/A'}
-                            </td>
-
-                            {/* Autor */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                <div className="font-medium text-gray-900 truncate">{book.author?.name || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{book.authorId}</div>
-                            </td>
-
-                            {/* Categoría */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                <div className="font-medium text-gray-900 truncate">{book.category?.name || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{book.categoryId}</div>
-                            </td>
-
-                            {/* Editorial */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
-                                <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                    {book.editorial}
-                                </span>
-                            </td>
-
-                            {/* Stock */}
-                            <td className="px-4 py-4 text-right text-sm font-medium">
-                                <div className="text-2xl font-bold text-gray-900">
-                                    {book.totalStock}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    Disp: {book.availableStock || 0}
-                                </div>
-                            </td>
-
-                            {/* Stock */}
-                            <td className="px-4 py-4 text-right text-sm font-medium">
-                                <div className="text-md rounded-full px-6 py-3 font-bold ">
-                                    {book.status}
-                                </div>
-
-                            </td>
-                            {/* ✅ BOTONES ACCIONES */}
-                            <td className="px-4 py-4 text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                    {/* Botón EDITAR */}
-                                    <button
-                                        onClick={() => onEdit(book)}
-                                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
-                                        title="Editar libro"
-                                    >
-                                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        <span className="hidden sm:inline">Editar</span>
-                                    </button>
-
-                                    {/* Botón ELIMINAR */}
-                                    <button
-                                        onClick={() => onDelete(book)}
-                                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all group hover:shadow-md flex items-center gap-1 text-sm font-medium"
-                                        title="Eliminar libro"
-                                    >
-                                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        <span className="hidden sm:inline">Eliminar</span>
-                                    </button>
-                                </div>
-                            </td>
+    return (
+        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
+                <table className="w-full table-auto min-w-[850px]">
+                    <thead>
+                        <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Título
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
+                                ISBN
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
+                                Año
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
+                                Autor
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
+                                Categoría
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
+                                Editorial
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Stock
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
+                                Acciones
+                            </th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {books.map((book: any) => (
+                            <tr
+                                key={book.id}
+                                className="hover:bg-gray-50 transition-colors group"
+                            >
+                                {/* Título */}
+                                <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
+                                    <div className="font-semibold text-gray-900 truncate mb-1">{book.title}</div>
+                                    <div className="text-sm text-gray-500">ID: {book.id}</div>
+                                </td>
 
-        {/* Mobile Cards - CON BOTONES */}
-        <div className="md:hidden mt-4 space-y-3">
-            {books.map((book: any) => (
-                <div key={book.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group/card">
-                    <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-bold text-lg text-gray-900 truncate flex-1 pr-4">
-                            {book.title}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${book.status === 'ACTIVE'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {book.status}
-                        </span>
-                    </div>
+                                {/* ISBN */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
+                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        {book.isbn || 'N/A'}
+                                    </span>
+                                </td>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
-                        <div>
-                            <span className="font-medium text-gray-900">ISBN:</span>
-                            <div className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded mt-0.5">
-                                {book.isbn || 'N/A'}
+                                {/* Año */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell">
+                                    {book.yearOfPublication || 'N/A'}
+                                </td>
+
+                                {/* Autor */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
+                                    <div className="font-medium text-gray-900 truncate">{book.author?.name || 'N/A'}</div>
+                                    <div className="text-xs text-gray-500">{book.authorId}</div>
+                                </td>
+
+                                {/* Categoría */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
+                                    <div className="font-medium text-gray-900 truncate">{book.category?.name || 'N/A'}</div>
+                                    <div className="text-xs text-gray-500">{book.categoryId}</div>
+                                </td>
+
+                                {/* Editorial */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
+                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                        {book.editorial || 'N/A'}
+                                    </span>
+                                </td>
+
+                                {/* Stock */}
+                                <td className="px-4 py-4 text-right text-sm font-medium">
+                                    <div className="text-2xl font-bold text-gray-900">
+                                        {book.totalStock}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        Disp: {book.availableStock || 0}
+                                    </div>
+                                </td>
+
+                                {/* Status */}
+                                <td className="px-4 py-4 text-right text-sm font-medium">
+                                    <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${book.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                        {book.status}
+                                    </span>
+                                </td>
+
+                                {/* Acciones Tabla */}
+                                <td className="px-4 py-4 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <button
+                                            onClick={() => onEdit(book)}
+                                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all"
+                                            title="Editar libro"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => onDelete(book)}
+                                            className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all"
+                                            title="Eliminar libro"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mobile Cards - Se muestra SOLO en móviles (md:hidden) */}
+            <div className="md:hidden space-y-3">
+                {books.map((book: any) => (
+                    <div key={book.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                        {/* Encabezado de la Card */}
+                        <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1 pr-2">
+                                <h3 className="font-bold text-base text-gray-900 line-clamp-2">
+                                    {book.title}
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">ID: {book.id}</p>
                             </div>
-                        </div>
-                        <div>
-                            <span className="font-medium text-gray-900">Año:</span>
-                            <span className="ml-1">{book.yearOfPublication || 'N/A'}</span>
-                        </div>
-                        <div>
-                            <span className="font-medium text-gray-900">Stock:</span>
-                            <div className="text-lg font-bold text-gray-900 ml-1">{book.totalStock}</div>
-                        </div>
-                        <div>
-                            <span className="font-medium text-gray-900">Editorial:</span>
-                            <span className="ml-1 bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">
-                                {book.editorial}
+                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 ${book.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                {book.status}
                             </span>
                         </div>
-                    </div>
 
-                    {/* ✅ BOTONES MOBILE */}
-                    <div className="flex gap-2 pt-2 border-t border-gray-100">
-                        <button
-                            onClick={() => onEdit(book)}
-                            className="flex-1 p-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Editar
-                        </button>
-                        <button
-                            onClick={() => onDelete(book)}
-                            className="flex-1 p-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Eliminar
-                        </button>
-                    </div>
+                        {/* Grid de Información Detallada */}
+                        <div className="grid grid-cols-2 gap-3 text-sm text-gray-600 mb-4">
+                            <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">ISBN</span>
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded mt-0.5">
+                                    {book.isbn || 'N/A'}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Año</span>
+                                <span className="text-gray-900 font-medium block mt-0.5">{book.yearOfPublication || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Editorial</span>
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded mt-0.5 truncate max-w-full">
+                                    {book.editorial || 'N/A'}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Stock (Tot / Disp)</span>
+                                <div className="text-sm font-bold text-gray-900 mt-0.5">
+                                    {book.totalStock} <span className="text-xs font-normal text-gray-500">/ {book.availableStock || 0}</span>
+                                </div>
+                            </div>
+                            <div className="col-span-2 border-t border-gray-50 pt-2 grid grid-cols-2 gap-2">
+                                <div>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Autor</span>
+                                    <span className="text-gray-900 text-xs font-medium truncate block mt-0.5">{book.author?.name || 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Categoría</span>
+                                    <span className="text-gray-900 text-xs font-medium truncate block mt-0.5">{book.category?.name || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div className="text-xs text-gray-500 mt-2 text-center">
-                        Autor: {book.author?.name} | Cat: {book.category?.name}
+                        {/* Botones de Acción Móviles */}
+                        <div className="flex gap-2 pt-3 border-t border-gray-100">
+                            <button
+                                onClick={() => onEdit(book)}
+                                className="flex-1 p-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Editar
+                            </button>
+                            <button
+                                onClick={() => onDelete(book)}
+                                className="flex-1 p-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
                     </div>
+                ))}
+            </div>
+
+            {/* Estado Vacío */}
+            {books.length === 0 && (
+                <div className="text-center py-12">
+                    <div className="text-gray-400 text-2xl mb-2">📚</div>
+                    <p className="text-gray-500 text-sm font-medium">No hay libros físicos registrados en el inventario</p>
                 </div>
-            ))}
+            )}
         </div>
-    </div>
-
+    );
 }

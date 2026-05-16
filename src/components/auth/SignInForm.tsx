@@ -58,14 +58,14 @@ export default function SignInForm() {
             }}>
               <div className="space-y-6">
                 <div>
-                  <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                  <Label isRequired={false}>
+                    Email
                   </Label>
                   <Input name="email" placeholder="info@gmail.com" type="email" />
                 </div>
                 <div>
-                  <Label>
-                    Contraseña <span className="text-error-500">*</span>{" "}
+                  <Label isRequired={false}>
+                    Contraseña
                   </Label>
                   <div className="relative">
                     <Input

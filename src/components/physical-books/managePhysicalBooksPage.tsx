@@ -77,7 +77,7 @@ export default function ManagePhysicalBooksPage() {
 
 
 
-        <div className="flex gap-3">
+        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
             <div>
                 <Label>Titulo del Libro</Label>
                 <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input></div>

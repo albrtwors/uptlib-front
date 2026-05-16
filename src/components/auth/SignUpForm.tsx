@@ -80,7 +80,7 @@ export default function SignUpForm() {
                   {/* <!-- First Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
-                      Nombre de Usuario<span className="text-error-500">*</span>
+                      Nombre de Usuario
                     </Label>
                     <Input
                       onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChangeWithErrorShowing(e, setCredentials, 'name', /^[a-zA-Z0-9_]{3,}$/)}
@@ -97,7 +97,7 @@ export default function SignUpForm() {
                 {/* <!-- Email --> */}
                 <div>
                   <Label>
-                    Email<span className="text-error-500">*</span>
+                    Email
                   </Label>
                   <Input
                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChangeWithErrorShowing(e, setCredentials, 'email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/)}
@@ -112,7 +112,7 @@ export default function SignUpForm() {
                 {/* <!-- Password --> */}
                 <div>
                   <Label>
-                    Contraseña<span className="text-error-500">*</span>
+                    Contraseña
                   </Label>
                   <div className="relative">
                     <Input
