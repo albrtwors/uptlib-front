@@ -105,7 +105,7 @@ export async function proxy(request: NextRequest) {
 
 
 const sessionProxy = (request: NextRequest, token: any, pathname: string) => {
-    if (!token && pathname != '/signin' && pathname != '/signup') {
+    if (!token && pathname != '/signin' && pathname != '/signup' && pathname != '/welcome') {
         return NextResponse.redirect(new URL('/signin', request.url));
     }
 }
