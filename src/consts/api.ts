@@ -1,3 +1,4 @@
 export const api = {
-    base_url: 'https://uptalib-back-porsi.vercel.app',
+    base_url: 'http://localhost:3000',
 }
+//https://uptalib-back-porsi.vercel.app

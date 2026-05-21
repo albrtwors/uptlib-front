@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
+// https://uptalib-back-porsi.vercel.app/:path*s
+
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://uptalib-back-porsi.vercel.app/:path*',
+        destination: 'http://localhost:3000/:path*',
       },
     ];
   },
