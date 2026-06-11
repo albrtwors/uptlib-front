@@ -60,9 +60,7 @@ export default function SignInForm() {
           <div>
 
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-              handleSubmit(e).then(res => {
-
-              })
+              handleSubmit(e)
             }}>
               <div className="space-y-6">
                 <div>
