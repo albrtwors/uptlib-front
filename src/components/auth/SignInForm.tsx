@@ -28,7 +28,7 @@ export default function SignInForm() {
         }
 
         SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' })
-        setTimeout(() => { router.push('/'), 1000 })
+        setTimeout(() => { router.push('/') }, 1000)
       } catch (error) {
         console.error(error)
       }
