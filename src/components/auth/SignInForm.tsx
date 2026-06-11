@@ -20,19 +20,27 @@ export default function SignInForm() {
     const formData = new FormData(e.currentTarget)
     const data = Object.fromEntries(formData)
     console.log(data)
-    fetch('/api/auth/login', fetchPostConfig(data)).then((res: Response) => {
+    const handleLogin = async (data: any) => {
       try {
+        const res = await fetch('/api/auth/login', fetchPostConfig(data));
+
         if (!res.ok) {
-          SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' })
-          return
+          SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
+          return;
         }
 
-        SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' })
-        router.push('/')
+        SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
+
+        // El setTimeout ahora funciona porque el flujo asíncrono principal ya se resolvió correctamente
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+
       } catch (error) {
-        console.error(error)
+        console.error(error);
       }
-    })
+    };
+    handleLogin(data)
 
   }
 
