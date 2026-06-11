@@ -14,35 +14,34 @@ export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter()
   const [isChecked, setIsChecked] = useState(false);
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-    const formData = new FormData(e.currentTarget)
-    const data = Object.fromEntries(formData)
-    console.log(data)
-    const handleLogin = async (data: any) => {
-      try {
-        const res = await fetch('/api/auth/login', fetchPostConfig(data));
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData);
+    console.log(data);
 
-        if (!res.ok) {
-          SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
-          return;
-        }
+    try {
+      // Ejecutamos el fetch directamente aquí
+      const res = await fetch('/api/auth/login', fetchPostConfig(data));
 
-        SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
-
-        // El setTimeout ahora funciona porque el flujo asíncrono principal ya se resolvió correctamente
-        setTimeout(() => {
-          router.push('/');
-        }, 1000);
-
-      } catch (error) {
-        console.error(error);
+      if (!res.ok) {
+        SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
+        return; // Detiene la ejecución si hay error
       }
-    };
-    handleLogin(data)
 
-  }
+      // Si todo sale bien, muestra el éxito
+      SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
+
+      // Ahora el setTimeout se ejecutará de forma segura en el contexto del submit
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
