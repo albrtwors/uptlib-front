@@ -22,21 +22,20 @@ export default function SignInForm() {
     console.log(data);
 
     try {
-      // Ejecutamos el fetch directamente aquí
       const res = await fetch('/api/auth/login', fetchPostConfig(data));
 
       if (!res.ok) {
         SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
-        return; // Detiene la ejecución si hay error
+        return;
       }
+
+      // 1. Primero lanzamos la alerta de éxito
+      SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
+
+      // 2. Inmediatamente después dejamos programado el redireccionamiento seguro
       setTimeout(() => {
         router.push('/');
       }, 1000);
-
-      // Si todo sale bien, muestra el éxito
-      SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
-
-      // Ahora el setTimeout se ejecutará de forma segura en el contexto del submit
 
     } catch (error) {
       console.error(error);
@@ -61,7 +60,9 @@ export default function SignInForm() {
           <div>
 
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-              handleSubmit(e)
+              handleSubmit(e).then(res => {
+
+              })
             }}>
               <div className="space-y-6">
                 <div>
