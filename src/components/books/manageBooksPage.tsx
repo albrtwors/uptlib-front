@@ -13,6 +13,7 @@ import Pagination from "../pagination/OwnPaginator"
 import { useManageModals } from "@/hooks/useModal"
 import usePagination from "@/hooks/usePaginationOwn"
 import { uploadFile } from "../../../utils/supabase"
+import { generateSafeFileName } from "../../../utils/string"
 
 
 export const useManageBooks = ({ search, limit }: any) => {
@@ -37,97 +38,112 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
         e.preventDefault();
         const formElement = e.currentTarget;
         const formData = new FormData(formElement);
-
-        // Extraemos el archivo PDF del formulario (suponiendo que tu input se llama 'pdf')
         const file = formData.get('pdf') as File;
 
         if (!file || file.size === 0) {
             return SwalAlert.fire({ title: 'Error', text: 'Por favor selecciona un archivo PDF', icon: 'error' });
         }
 
-        // 1. Mostrar pantalla de carga integrada para mejorar UX y evitar doble click
-        SwalAlert.loading();
+        SwalAlert.loading()
 
         try {
-            // 2. Sanitizar el nombre del archivo en el Frontend
             const titleField = formData.get('title') as string || 'documento';
-            const sanitizedTitle = titleField
-                .toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^a-z0-9]/g, '_')
-                .replace(/_+/g, '_');
 
-            const fileExt = file.name.split('.').pop() || 'pdf';
-            const newFileName = `${sanitizedTitle}-${Date.now()}.${fileExt}`; // Timestamp evita colisiones
+            // Usamos la función utilitaria
+            const newFileName = generateSafeFileName(titleField, file.name);
 
-            // 3. Subida directa a Supabase desde el cliente (No consume tiempo de Vercel)
+            // Subida directa a Supabase
             const finalPublicUrl = await uploadFile(file, 'pdfs', newFileName, file.type);
 
-            if (!finalPublicUrl) {
-                throw new Error("Supabase Storage no retornó una URL válida.");
-            }
+            if (!finalPublicUrl) throw new Error("Supabase Storage no retornó una URL válida.");
 
-            // 4. Preparar payload limpio para enviar a NestJS como JSON plano
+            // Preparar JSON para NestJS
             const formEntries = Object.fromEntries(formData.entries());
-
-            // Reemplazamos el archivo binario por el string de la URL
-            const payload: any = {
-                ...formEntries,
-                routepdf: finalPublicUrl // Enviamos la ruta lista al backend
-            };
-            // Eliminamos la propiedad residual del archivo pesado por si acaso
+            const payload: any = { ...formEntries, routepdf: finalPublicUrl };
             delete payload.pdf;
 
-            // 5. Envío de datos ligeros a la API de NestJS en Vercel
+            // Petición ligera a NestJS
             const res = await fetch(`/api/book`, {
                 method: 'POST',
-                body: JSON.stringify(payload), // Enviamos JSON puro
+                body: JSON.stringify(payload),
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
 
-            if (!res.ok) {
-                throw new Error(`Error en el servidor: ${res.status}`);
-            }
+            if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
 
             const response = await res.json();
 
+
             const result = handleResponses(response);
             if (result) {
-                formElement.reset(); // Limpia el formulario físico
+                formElement.reset();
                 getBooks({ search, limit }).then((res: any) => setBooks(res.data));
                 setCreateModal(false);
             }
 
         } catch (err) {
-            console.error('Error en el proceso de creación:', err);
-            SwalAlert.fire({
-                title: 'Error de proceso',
-                text: 'Hubo un problema al procesar el archivo o guardar los datos.',
-                icon: 'error'
-            });
+            console.error('Error en creación:', err);
+            SwalAlert.fire({ title: 'Error de proceso', text: 'Hubo un problema al guardar el libro.', icon: 'error' });
         }
     };
 
-    const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const formData = new FormData(e.currentTarget)
-        const dataXd = Object.fromEntries(formData.entries())
+    // ==========================================
+    // EDITAR LIBRO
+    // ==========================================
+    const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formElement = e.currentTarget;
+        const formData = new FormData(formElement);
+        const file = formData.get('pdf') as File;
 
-        fetch(`/api/book/${selectedBook.id}`, {
-            body: formData,
-            credentials: 'include',
-            method: 'PATCH'
-        }).then(res => res.json()).then((data: any) => {
-            const result = handleResponses(data)
-            console.log(data)
-            if (result) {
-                getBooks({ search, limit }).then((res: any) => setBooks(res.data))
-                setEditModal(false)
+        SwalAlert.loading();
+
+        try {
+            let finalPublicUrl = selectedBook.routepdf; // Conserva la URL actual si no se sube nada nuevo
+
+            // Si el usuario seleccionó un archivo nuevo en la edición
+            if (file && file.size > 0) {
+                const titleField = formData.get('title') as string || 'documento';
+
+                // Usamos la misma función utilitaria
+                const newFileName = generateSafeFileName(titleField, file.name);
+
+                const uploadedUrl = await uploadFile(file, 'pdfs', newFileName, file.type);
+                if (!uploadedUrl) throw new Error("No se pudo subir el nuevo archivo.");
+
+                finalPublicUrl = uploadedUrl;
             }
-        })
 
-    }
+            // Preparar JSON para NestJS
+            const formEntries = Object.fromEntries(formData.entries());
+            const payload: any = { ...formEntries, routepdf: finalPublicUrl };
+            delete payload.pdf;
+
+            // Petición PATCH a NestJS
+            const res = await fetch(`/api/book/${selectedBook.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
+
+            const data = await res.json();
+
+
+            const result = handleResponses(data);
+            if (result) {
+                getBooks({ search, limit }).then((res: any) => setBooks(res.data));
+                setEditModal(false);
+            }
+
+        } catch (err) {
+            console.error('Error al editar:', err);
+            SwalAlert.fire({ title: 'Error de actualización', text: 'Hubo un problema al modificar el libro.', icon: 'error' });
+        }
+    };
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
