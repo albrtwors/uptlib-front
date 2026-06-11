@@ -34,7 +34,7 @@ export default function SignInForm() {
         // El setTimeout ahora funciona porque el flujo asíncrono principal ya se resolvió correctamente
         setTimeout(() => {
           router.push('/');
-        }, 3000);
+        }, 1000);
 
       } catch (error) {
         console.error(error);
