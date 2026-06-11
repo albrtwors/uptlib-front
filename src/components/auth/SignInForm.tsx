@@ -29,14 +29,14 @@ export default function SignInForm() {
         SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
         return; // Detiene la ejecución si hay error
       }
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
 
       // Si todo sale bien, muestra el éxito
       SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
 
       // Ahora el setTimeout se ejecutará de forma segura en el contexto del submit
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
 
     } catch (error) {
       console.error(error);
