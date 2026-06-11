@@ -1,9 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Next.js detecta process.env automáticamente sin usar la librería 'dotenv'
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 // Validación de seguridad en desarrollo
 if (!supabaseUrl || !supabaseKey) {
     throw new Error("Faltan las variables de entorno de Supabase en .env.local");
