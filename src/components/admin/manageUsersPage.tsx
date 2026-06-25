@@ -9,7 +9,7 @@ import Label from "../form/Label"
 import Input from "../form/input/InputField"
 import Pagination from "../pagination/OwnPaginator"
 import ManageUsersTable from "./tables/manageUsersTable"
-import { handleResponses } from "@/lib/responses/handleResponses"
+import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import GenericModalContainer from "../modals/GenericModalContainer"
 import Select from "../form/Select"
 

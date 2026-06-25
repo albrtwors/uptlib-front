@@ -3,66 +3,70 @@ import Button from "@/components/ui/button/Button"
 import { useEffect, useState } from "react"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
-import { fetchDeleteConfig, fetchPatchConfig, fetchPostConfig } from "@/lib/fetch/fetchConfig"
-import { SwalAlert } from "@/lib/swal/swal"
+import { fetchDeleteConfig } from "@/hooks/lib/fetch/fetchConfig"
+import { SwalAlert } from "@/hooks/lib/swal/swal"
 import BookManageCard from "../cards/BookManageCard"
 import GenericModalContainer from "../modals/GenericModalContainer"
-import { handleResponses } from "@/lib/responses/handleResponses"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { handleResponses } from "@/hooks/lib/responses/handleResponses"
+import { usePathname, useRouter } from "next/navigation"
 import Pagination from "../pagination/OwnPaginator"
 import { useManageModals } from "@/hooks/useModal"
 import usePagination from "@/hooks/usePaginationOwn"
 import { uploadFile } from "../../../utils/supabase"
 import { generateSafeFileName } from "../../../utils/string"
 
+const PNF_OPTIONS = [
+    "GENERAL", "INFORMATICA", "ELECTRONICA", "MANTENIMIENTO",
+    "CONTADURIA", "ADMINISTRACION", "ELECTRICIDAD",
+    "MECANICA", "INSTRUMENTACION", "TELECOMUNICACIONES"
+];
 
-export const useManageBooks = ({ search, limit }: any) => {
+export const useManageBooks = ({ search, limit, page, pnf }: any) => {
     const [books, setUseAllBooks]: any = useState([])
 
-
-    const getBooks = async ({ search, limit }: any) => {
-        return fetch(`/api/book?search=${search}&limit=${limit ?? 10}`).then((res: any) => res.json()).then((data: any) => {
+    const getBooks = async ({ search, limit, page, pnf }: any) => {
+        let url = `/api/book?search=${search}&limit=${limit ?? 10}&page=${page ?? 1}`;
+        if (pnf) {
+            url += `&pnf=${pnf}`;
+        }
+        return fetch(url).then((res: any) => res.json()).then((data: any) => {
             return data
         })
     }
 
-    useEffect(() => {
-        getBooks({ search, limit })
-    }, [])
-
     return { books, setUseAllBooks, getBooks }
 }
 
-const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks }: any) => {
+const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks }: any) => {
+
     const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formElement = e.currentTarget;
         const formData = new FormData(formElement);
-        const file = formData.get('pdf') as File;
 
-        if (!file || file.size === 0) {
-            return SwalAlert.fire({ title: 'Error', text: 'Por favor selecciona un archivo PDF', icon: 'error' });
-        }
+        const file = formData.get('pdf') as File | null;
+        const pdfUrl = formData.get('pdfUrl') as string | null;
 
-        SwalAlert.loading()
+        let finalPublicUrl: any = "";
+        SwalAlert.loading();
 
         try {
-            const titleField = formData.get('title') as string || 'documento';
+            if (file && file.size > 0) {
+                const titleField = formData.get('title') as string || 'documento';
+                const newFileName = generateSafeFileName(titleField, file.name);
+                finalPublicUrl = await uploadFile(file, 'pdfs', newFileName, file.type);
+                if (!finalPublicUrl) throw new Error("Supabase Storage no retornó una URL válida.");
+            } else if (pdfUrl && pdfUrl.trim() !== "") {
+                finalPublicUrl = pdfUrl.trim();
+            } else {
+                return SwalAlert.fire({ title: 'Error', text: 'Por favor, sube un archivo PDF o introduce una URL válida.', icon: 'error' });
+            }
 
-            // Usamos la función utilitaria
-            const newFileName = generateSafeFileName(titleField, file.name);
-
-            // Subida directa a Supabase
-            const finalPublicUrl = await uploadFile(file, 'pdfs', newFileName, file.type);
-
-            if (!finalPublicUrl) throw new Error("Supabase Storage no retornó una URL válida.");
-
-            // Preparar JSON para NestJS
             const formEntries = Object.fromEntries(formData.entries());
             const payload: any = { ...formEntries, routepdf: finalPublicUrl };
             delete payload.pdf;
+            delete payload.pdfUrl;
 
-            // Petición ligera a NestJS
             const res = await fetch(`/api/book`, {
                 method: 'POST',
                 body: JSON.stringify(payload),
@@ -73,12 +77,10 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
             if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
 
             const response = await res.json();
-
-
             const result = handleResponses(response);
             if (result) {
                 formElement.reset();
-                getBooks({ search, limit }).then((res: any) => setBooks(res.data));
+                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data));
                 setCreateModal(false);
             }
 
@@ -88,39 +90,33 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
         }
     };
 
-    // ==========================================
-    // EDITAR LIBRO
-    // ==========================================
     const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formElement = e.currentTarget;
         const formData = new FormData(formElement);
-        const file = formData.get('pdf') as File;
+        const file = formData.get('pdf') as File | null;
+        const pdfUrl = formData.get('pdfUrl') as string | null;
 
         SwalAlert.loading();
 
         try {
-            let finalPublicUrl = selectedBook.routepdf; // Conserva la URL actual si no se sube nada nuevo
+            let finalPublicUrl = selectedBook.routepdf;
 
-            // Si el usuario seleccionó un archivo nuevo en la edición
             if (file && file.size > 0) {
                 const titleField = formData.get('title') as string || 'documento';
-
-                // Usamos la misma función utilitaria
                 const newFileName = generateSafeFileName(titleField, file.name);
-
                 const uploadedUrl = await uploadFile(file, 'pdfs', newFileName, file.type);
                 if (!uploadedUrl) throw new Error("No se pudo subir el nuevo archivo.");
-
                 finalPublicUrl = uploadedUrl;
+            } else if (pdfUrl && pdfUrl.trim() !== "") {
+                finalPublicUrl = pdfUrl.trim();
             }
 
-            // Preparar JSON para NestJS
             const formEntries = Object.fromEntries(formData.entries());
             const payload: any = { ...formEntries, routepdf: finalPublicUrl };
             delete payload.pdf;
+            delete payload.pdfUrl;
 
-            // Petición PATCH a NestJS
             const res = await fetch(`/api/book/${selectedBook.id}`, {
                 method: 'PATCH',
                 body: JSON.stringify(payload),
@@ -131,11 +127,9 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
             if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
 
             const data = await res.json();
-
-
             const result = handleResponses(data);
             if (result) {
-                getBooks({ search, limit }).then((res: any) => setBooks(res.data));
+                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data));
                 setEditModal(false);
             }
 
@@ -147,11 +141,10 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getBooks({ search, limit }).then((res: any) => setBooks(res.data))
+                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data))
                 setDeleteModal(false)
             }
         })
@@ -160,147 +153,179 @@ const useHttpSubmit = ({ search, getBooks, limit, selectedBook, setDeleteModal, 
 }
 
 export default function ManageBooksPage() {
-    //modal handling
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [selectedBook, setSelectedBook]: any = useState(null)
+    const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
 
-    //search handling
     const pathname = usePathname();
     const router = useRouter();
 
-    //search
     const { page, setPage, totalPages } = usePagination()
     const [searchInput, setSearchInput] = useState('')
     const [limit, setLimit] = useState(10)
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
+    const [pnfFilter, setPnfFilter] = useState('') // Estado para el filtro de la vista principal
 
-    //handlehttp
-    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput })
-
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit, page, pnf: pnfFilter })
+    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({
+        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, setDeleteModal, setCreateModal, setEditModal, search: searchInput
+    })
 
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', searchInput)
         params.set('limit', limit.toString())
+        if (pnfFilter) params.set('pnf', pnfFilter)
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/book?limit=${limit}&search=${searchInput}&page=${page}`)
-            .then(res => res.json())
+        getBooks({ search: searchInput, limit, page, pnf: pnfFilter })
             .then(data => {
                 setUseAllBooks(data.data)
                 totalPages.current = data.totalPages
             })
-    }, [searchInput, limit, page]);
+    }, [searchInput, limit, page, pnfFilter]);
 
+    return (
+        <section className="flex flex-col gap-4 p-4 max-w-7xl mx-auto w-full">
+            <h1 className="text-2xl md:text-3xl font-bold">Gestionar Libros <span className="text-blue-600">(admin)</span></h1>
 
+            {/* BARRA DE BÚSQUEDA RESPONSIVE */}
+            <div className="flex flex-col sm:flex-row gap-3 items-end w-full">
+                <div className="w-full sm:w-24">
+                    <Label>Cantidad</Label>
+                    <Input type="number" placeholder="10" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const limi = parseInt(e.target.value)
+                        setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
+                    }}></Input>
+                </div>
 
-    return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Gestionar Libros <span className="text-blue-600">(admin)</span></h1>
+                <div className="w-full sm:flex-1">
+                    <Label>Buscar por Texto</Label>
+                    <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+                </div>
 
+                <div className="w-full sm:w-56">
+                    <Label>Filtrar por PNF</Label>
+                    <select
+                        value={pnfFilter}
+                        onChange={(e) => setPnfFilter(e.target.value)}
+                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white"
+                    >
+                        <option value="">TODOS LOS PNF</option>
+                        {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
+                    </select>
+                </div>
 
+                <Button className="w-full sm:w-auto h-11 whitespace-nowrap" onClick={() => setCreateModal(true)}>Añadir Libro</Button>
+            </div>
 
-        <div className="flex gap-3">
+            <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>
 
-            <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const limi = parseInt(e.target.value)
-                if (!isNaN(limi) && limi > 0) {
-                    setLimit(parseInt(e.target.value))
-                } else {
-                    setLimit(10)
-                }
+            {/* GRID TOTALMENTE RESPONSIVE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {books && books.map((book: any) => (
+                    <BookManageCard
+                        onDelete={() => { setSelectedBook(book); setDeleteModal(true); }}
+                        onEdit={() => { setSelectedBook(book); setEditModal(true); }}
+                        key={book.id}
+                        id={book.id}
+                        title={book.title}
+                        description={book.description}
+                        pnf={book.pnf} // 💡 Pasamos el PNF a la tarjeta
+                    />
+                ))}
+            </div>
 
-            }}></Input>
+            {/* MODAL CREAR */}
+            {createModal &&
+                <GenericModalContainer>
+                    <div className="flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
+                    <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full">
+                        <div>
+                            <Label>Título del libro</Label>
+                            <Input name="title" placeholder="Mago de Oz" ></Input>
+                        </div>
+                        <div>
+                            <Label isRequired={false}>Descripción</Label>
+                            <Input name="description" placeholder="Las aventuras de Dorothy..."></Input>
+                        </div>
+                        <div>
+                            <Label>PNF</Label>
+                            <select name="pnf" className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white">
+                                {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Método de PDF</Label>
+                            <div className="flex gap-4 mb-2">
+                                <label className="flex items-center gap-1 text-sm cursor-pointer">
+                                    <input type="radio" checked={uploadMode === "file"} onChange={() => setUploadMode("file")} /> Archivo
+                                </label>
+                                <label className="flex items-center gap-1 text-sm cursor-pointer">
+                                    <input type="radio" checked={uploadMode === "url"} onChange={() => setUploadMode("url")} /> Enlace URL
+                                </label>
+                            </div>
+                            {uploadMode === "file" ? (
+                                <Input type="file" name="pdf"></Input>
+                            ) : (
+                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf"></Input>
+                            )}
+                        </div>
+                        <Button>Guardar</Button>
+                    </form>
+                </GenericModalContainer>
+            }
 
-            <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-            <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
-        </div>
+            {/* MODAL EDITAR */}
+            {(editModal && selectedBook) &&
+                <GenericModalContainer>
+                    <div className="flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
+                    <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full">
+                        <div>
+                            <Label>Título del libro</Label>
+                            <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz" ></Input>
+                        </div>
+                        <div>
+                            <Label isRequired={false}>Descripción</Label>
+                            <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy..."></Input>
+                        </div>
+                        <div>
+                            <Label>PNF</Label>
+                            <select name="pnf" defaultValue={selectedBook.pnf} className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white">
+                                {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Método de PDF</Label>
+                            <div className="flex gap-4 mb-2">
+                                <label className="flex items-center gap-1 text-sm cursor-pointer">
+                                    <input type="radio" checked={uploadMode === "file"} onChange={() => setUploadMode("file")} /> Archivo
+                                </label>
+                                <label className="flex items-center gap-1 text-sm cursor-pointer">
+                                    <input type="radio" checked={uploadMode === "url"} onChange={() => setUploadMode("url")} /> Enlace URL
+                                </label>
+                            </div>
+                            {uploadMode === "file" ? (
+                                <Input type="file" name="pdf"></Input>
+                            ) : (
+                                <Input type="url" name="pdfUrl" defaultValue={selectedBook.routepdf.startsWith('http') && !selectedBook.routepdf.includes('supabase') ? selectedBook.routepdf : ''} placeholder="https://ejemplo.com/libro.pdf"></Input>
+                            )}
+                        </div>
+                        <Button>Guardar</Button>
+                    </form>
+                </GenericModalContainer>}
 
-        <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>
-
-        <div className="grid grid-cols-3 gap-3">
-            {books && books.map((book: any) => <BookManageCard onDelete={() => {
-                setSelectedBook(book)
-                setDeleteModal(true)
-            }} onEdit={() => {
-                setSelectedBook(book)
-                setEditModal(true)
-            }} key={book.id} id={book.id} title={book.title} description={book.description}></BookManageCard>)}
-        </div>
-
-
-
-
-        {createModal &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
-                <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Título del libro</Label>
-                        <Input name="title" placeholder="Mago de Oz"></Input>
-                    </div>
-                    <div>
-                        <Label isRequired={false}>Descripción</Label>
-                        <Input name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
-                    </div>
-                    <div>
-                        <Label>Pdf</Label>
-                        <Input type="file" name="pdf" placeholder="archivo"></Input>
-                    </div>
-                    {/* <Label>Pdf</Label>
-                    <Input type="text" name="routepdf" placeholder="pdf"></Input> */}
-                    {/* <div>
-                        <Label>Imágen</Label>
-                        <Input name="routeimg" placeholder="image"></Input>
-
-                    </div> */}
-                    <Button>Guardar</Button>
-                </form>
-            </GenericModalContainer>
-        }
-
-        {(editModal && selectedBook) &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Título del libro</Label>
-                        <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz"></Input>
-                    </div>
-                    <div>
-                        <Label isRequired={false}>Descripción</Label>
-                        <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy en la tierra de OZ"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Pdf</Label>
-                        <Input type="file" name="pdf" placeholder="archivo"></Input>
-                    </div>
-                    {/* <div>
-                        <Label>Pdf</Label>
-                        <Input type="file" name="pdf" placeholder="archivo"></Input>
-                    </div> */}
-                    {/* <div>
-                        <Label>Imágen</Label>
-                        <Input defaultValue={selectedBook.routeimg} name="routeimg" placeholder="image"></Input>
-
-                    </div> */}
-                    <Button>Guardar</Button>
-                </form>
-            </GenericModalContainer>}
-
-        {(deleteModal && selectedBook) &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)} className="flex flex-col gap-2">
-
-                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedBook.title}?</h3>
-                    <div className="flex gap-3 justify-center">
-                        <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
-                        <Button className="bg-red-600">Eliminar</Button>
-                    </div>
-
-                </form>
-            </GenericModalContainer>}
-
-    </section>
+            {/* MODAL ELIMINAR */}
+            {(deleteModal && selectedBook) &&
+                <GenericModalContainer>
+                    <div className="flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
+                    <form onSubmit={handleDeleteSubmit} className="flex flex-col gap-3 text-center">
+                        <h3 className="text-lg font-bold">¿Seguro de que quieres eliminar {selectedBook.title}?</h3>
+                        <div className="flex gap-3 justify-center">
+                            <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
+                            <Button className="bg-red-600 text-white">Eliminar</Button>
+                        </div>
+                    </form>
+                </GenericModalContainer>}
+        </section>
+    )
 }

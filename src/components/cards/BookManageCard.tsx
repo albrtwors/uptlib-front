@@ -1,74 +1,34 @@
-import Button from "../ui/button/Button";
-
-export default function BookCard({
-    id,
-    title,
-    description,
-    img,
-    onEdit,
-    onDelete
-}: {
+interface BookManageCardProps {
     id: number;
     title: string;
-    description: string;
-    img?: string | null;
-    onEdit?: (book: any) => void;
-    onDelete?: (id: number) => void;
-}) {
-    const hasImage = img && img !== '';
+    description?: string;
+    pnf?: string; // 💡 Nueva propiedad
+    onEdit: () => void;
+    onDelete: () => void;
+}
 
+export default function BookManageCard({ title, description, pnf, onEdit, onDelete }: BookManageCardProps) {
     return (
-        <div className="group relative flex shadow-lg rounded-2xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-gray-100 bg-gradient-to-br from-white to-gray-50 overflow-hidden">
-            {/* Image Container */}
-            <div className={`
-                w-32 flex-shrink-0 relative overflow-hidden transition-all duration-300 group-hover:scale-105
-                ${hasImage
-                    ? 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-r border-blue-100'
-                    : 'bg-gradient-to-br from-gray-100 to-gray-200'
-                }
-            `}>
-                {hasImage ? (
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-300/50 to-gray-400/50">
-                        <span className="text-2xl opacity-80 font-bold tracking-wider">📚</span>
-                    </div>
+        <div className="flex flex-col justify-between p-4 rounded-xl border bg-white shadow-xs dark:bg-gray-900 dark:border-gray-800 h-full">
+            <div className="flex flex-col gap-1.5">
+                {/* Badge del PNF Estilizado */}
+                {pnf && (
+                    <span className="self-start px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
+                        {pnf}
+                    </span>
                 )}
-                <div className="w-full h-48 flex items-center justify-center p-4">
-                    <div className={`
-                        w-20 h-28 rounded-xl shadow-lg border-2 transition-all duration-300
-                        ${hasImage
-                            ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-blue-200 group-hover:shadow-xl group-hover:scale-105'
-                            : 'bg-gradient-to-br from-gray-200 to-gray-300 border-gray-300'
-                        }
-                    `} />
-                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 mt-1">{title}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">{description || 'Sin descripción'}</p>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
-                <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-gray-900 leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {title}
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-4 pr-2">
-                        {description}
-                    </p>
-                </div>
-
-                {/* Action Buttons - DISEÑO ORIGINAL CONSERVADO */}
-                <div className="flex gap-2 pt-2">
-                    {onEdit && (
-                        <Button onClick={() => onEdit(id)}>Editar</Button>
-                    )}
-                    {onDelete && (
-                        <Button className="bg-red-600" onClick={() => onDelete(id)}>Eliminar</Button>
-                    )}
-                </div>
+            <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <button type="button" onClick={onEdit} className="flex-1 text-xs py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-medium transition-colors">
+                    Editar
+                </button>
+                <button type="button" onClick={onDelete} className="flex-1 text-xs py-2 px-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 font-medium transition-colors">
+                    Eliminar
+                </button>
             </div>
-
-            {/* Hover Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10" />
         </div>
     );
 }

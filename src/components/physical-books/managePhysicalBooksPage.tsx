@@ -5,7 +5,7 @@ import Label from "../form/Label"
 import Input from "../form/input/InputField"
 import BookManageCard from "../cards/BookManageCard"
 import GenericModalContainer from "../modals/GenericModalContainer"
-import { handleResponses } from "@/lib/responses/handleResponses"
+import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { useManageModals } from "@/hooks/useModal"

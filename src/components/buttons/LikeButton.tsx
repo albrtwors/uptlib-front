@@ -1,4 +1,4 @@
-import { handleResponses } from '@/lib/responses/handleResponses';
+import { handleResponses } from '@/hooks/lib/responses/handleResponses';
 import { useEffect, useState } from 'react';
 
 

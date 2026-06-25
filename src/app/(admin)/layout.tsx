@@ -4,7 +4,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import { verifySession } from "@/lib/session/verify";
+import { verifySession } from "@/hooks/lib/session/verify";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 

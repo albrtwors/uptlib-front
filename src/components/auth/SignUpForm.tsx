@@ -3,8 +3,8 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
-import { fetchPostConfig } from "@/lib/fetch/fetchConfig";
-import { SwalAlert } from "@/lib/swal/swal";
+import { fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig";
+import { SwalAlert } from "@/hooks/lib/swal/swal";
 import Link from "next/link";
 import React, { ChangeEvent, ChangeEventHandler, useState } from "react";
 

@@ -1,3 +1,4 @@
+import { api } from "@/consts/api";
 import type { NextConfig } from "next";
 
 // https://uptalib-back-porsi.vercel.app/:path*s
@@ -7,7 +8,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://uptalib-back-porsi.vercel.app/:path*',
+        destination: `${api.base_url}/:path*`,
       },
     ];
   },

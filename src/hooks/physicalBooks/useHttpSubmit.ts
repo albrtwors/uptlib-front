@@ -1,6 +1,6 @@
-import { fetchDeleteConfig, fetchPostConfig } from "@/lib/fetch/fetchConfig"
-import { handleResponses } from "@/lib/responses/handleResponses"
-import { SwalAlert } from "@/lib/swal/swal"
+import { fetchDeleteConfig, fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig"
+import { handleResponses } from "@/hooks/lib/responses/handleResponses"
+import { SwalAlert } from "@/hooks/lib/swal/swal"
 
 export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalPages, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, page }: any) => {
 
