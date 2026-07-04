@@ -14,17 +14,18 @@ import Link from 'next/link'
 export default function LandingPage() {
     const [isOpen, setIsOpen] = useState(false)
     const [activeSection, setActiveSection] = useState('home')
-    const [isContactOpen, setIsContactOpen] = useState(false)
 
-    // Detectar sección activa automáticamente
+    // Detectar sección activa automáticamente mediante scroll
     useEffect(() => {
         const handleScroll = () => {
-            const sections = ['home', 'mision', 'historia', 'servicios', 'contacto']
+            // 💡 Sincronizado exactamente con los IDs reales de tus secciones abajo
+            const sections = ['home', 'mision', 'servicios', 'contacto']
             for (let section of sections) {
                 const element = document.getElementById(section)
                 if (element) {
                     const rect = element.getBoundingClientRect()
-                    if (rect.top < 100 && rect.bottom > 100) {
+                    // Si el inicio de la sección cruzó el umbral superior
+                    if (rect.top < 120 && rect.bottom > 120) {
                         setActiveSection(section)
                         break
                     }
@@ -39,12 +40,27 @@ export default function LandingPage() {
     const scrollToSection = (sectionId: string) => {
         setActiveSection(sectionId)
         const element = document.getElementById(sectionId)
-        element?.scrollIntoView({ behavior: 'smooth' })
+        if (element) {
+            // Un pequeño offset para compensar el alto de la barra de navegación fija (fixed)
+            const offset = 80
+            const bodyRect = document.body.getBoundingClientRect().top
+            const elementRect = element.getBoundingClientRect().top
+            const elementPosition = elementRect - bodyRect
+            const offsetPosition = elementPosition - offset
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            })
+        }
     }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
 
-            <Navbar activeSection={activeSection} onSectionChange={scrollToSection}></Navbar>
+            {/* Navbar pasándole el estado activo y el manejador de scroll adaptado a /welcome */}
+            <Navbar activeSection={activeSection} onSectionChange={scrollToSection} />
+
             {/* Hero Section */}
             <section id='home' className="relative overflow-hidden bg-blue-600 text-white py-32 px-6 md:px-12">
                 <div className="absolute inset-0 bg-black/20"></div>
@@ -59,18 +75,17 @@ export default function LandingPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
                         <Link href="/signin">
-                            <button className="bg-white text-blue-600 px-8 py-4 rounded-full font-semibold text-lg shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300">
+                            <span className="cursor-pointer bg-white text-blue-600 px-8 py-4 rounded-full font-semibold text-lg shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300 inline-block">
                                 Explora nuestro catálogo virtual
-                            </button>
+                            </span>
                         </Link>
-
                     </div>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white/30 to-transparent"></div>
             </section>
 
             {/* Misión y Visión */}
-            <section id="mision" className="py-24 px-6 md:px-12 bg-white">
+            <section id="mision" className="py-24 px-6 md:px-12 bg-whiteScroll pt-28">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid md:grid-cols-2 gap-12 items-center">
                         <div className="space-y-6">
@@ -106,7 +121,7 @@ export default function LandingPage() {
             </section>
 
             {/* Servicios */}
-            <section id='servicios' className="py-24 px-6 md:px-12 bg-gradient-to-b from-gray-50 to-white">
+            <section id='servicios' className="py-24 px-6 md:px-12 bg-gradient-to-b from-gray-50 to-white pt-28">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-20">
                         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -146,7 +161,7 @@ export default function LandingPage() {
             </section>
 
             {/* Contacto y Ubicación */}
-            <section id="contacto" className="py-24 px-6 md:px-12">
+            <section id="contacto" className="py-24 px-6 md:px-12 pt-28">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-20">
                         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -158,7 +173,6 @@ export default function LandingPage() {
                     </div>
 
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        {/* Información de contacto */}
                         <div className="space-y-8">
                             <div className="flex items-start space-x-4 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl">
                                 <MapPinIcon className="w-12 h-12 text-blue-600 mt-1 flex-shrink-0" />
@@ -221,7 +235,7 @@ export default function LandingPage() {
                 <div className="max-w-6xl mx-auto text-center">
                     <h3 className="text-3xl font-bold mb-6">Biblioteca Raúl Castillo</h3>
                     <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                        © 2024 Universidad Politécnica Territorial de Aragua - FBF. Todos los derechos reservados.
+                        © 2026 Universidad Politécnica Territorial de Aragua - FBF. Todos los derechos reservados.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-gray-400">
                         <a href="#" className="hover:text-white transition-colors">Política de Privacidad</a>

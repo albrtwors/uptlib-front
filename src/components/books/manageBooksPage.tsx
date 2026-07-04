@@ -1,4 +1,5 @@
 "use client"
+
 import Button from "@/components/ui/button/Button"
 import { useEffect, useState } from "react"
 import Label from "../form/Label"
@@ -14,6 +15,10 @@ import { useManageModals } from "@/hooks/useModal"
 import usePagination from "@/hooks/usePaginationOwn"
 import { uploadFile } from "../../../utils/supabase"
 import { generateSafeFileName } from "../../../utils/string"
+import BookFormChatbot from "@/components/chatbot/book/BookFormChatbot"
+import BookBulkChatbot from "@/components/chatbot/book/BookBulkChatbot"
+import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
+import PnfSelectorModal from "@/components/form/pnf/PnfSelectorModal"
 
 const PNF_OPTIONS = [
     "GENERAL", "INFORMATICA", "ELECTRONICA", "MANTENIMIENTO",
@@ -21,13 +26,16 @@ const PNF_OPTIONS = [
     "MECANICA", "INSTRUMENTACION", "TELECOMUNICACIONES"
 ];
 
-export const useManageBooks = ({ search, limit, page, pnf }: any) => {
+export const useManageBooks = ({ search, limit, page, pnf, authorIds }: any) => {
     const [books, setUseAllBooks]: any = useState([])
 
-    const getBooks = async ({ search, limit, page, pnf }: any) => {
+    const getBooks = async ({ search, limit, page, pnf, authorIds }: any) => {
         let url = `/api/book?search=${search}&limit=${limit ?? 10}&page=${page ?? 1}`;
         if (pnf) {
             url += `&pnf=${pnf}`;
+        }
+        if (authorIds && authorIds.length > 0) {
+            url += `&authors=${authorIds.join(',')}`;
         }
         return fetch(url).then((res: any) => res.json()).then((data: any) => {
             return data
@@ -37,7 +45,7 @@ export const useManageBooks = ({ search, limit, page, pnf }: any) => {
     return { books, setUseAllBooks, getBooks }
 }
 
-const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks }: any) => {
+const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, createValues, editValues, createModal }: any) => {
 
     const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -62,10 +70,13 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDe
                 return SwalAlert.fire({ title: 'Error', text: 'Por favor, sube un archivo PDF o introduce una URL válida.', icon: 'error' });
             }
 
-            const formEntries = Object.fromEntries(formData.entries());
-            const payload: any = { ...formEntries, routepdf: finalPublicUrl };
-            delete payload.pdf;
-            delete payload.pdfUrl;
+            const payload = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                routepdf: finalPublicUrl,
+                pnfs: createValues.pnfs,
+                authorIds: createValues.authorIds
+            };
 
             const res = await fetch(`/api/book`, {
                 method: 'POST',
@@ -80,7 +91,7 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDe
             const result = handleResponses(response);
             if (result) {
                 formElement.reset();
-                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data));
+                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
                 setCreateModal(false);
             }
 
@@ -112,10 +123,13 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDe
                 finalPublicUrl = pdfUrl.trim();
             }
 
-            const formEntries = Object.fromEntries(formData.entries());
-            const payload: any = { ...formEntries, routepdf: finalPublicUrl };
-            delete payload.pdf;
-            delete payload.pdfUrl;
+            const payload = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                routepdf: finalPublicUrl,
+                pnfs: editValues.pnfs,
+                authorIds: editValues.authorIds
+            };
 
             const res = await fetch(`/api/book/${selectedBook.id}`, {
                 method: 'PATCH',
@@ -129,7 +143,7 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDe
             const data = await res.json();
             const result = handleResponses(data);
             if (result) {
-                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data));
+                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
                 setEditModal(false);
             }
 
@@ -144,7 +158,7 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, selectedBook, setDe
         fetch(`/api/book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getBooks({ search, limit, page, pnf }).then((res: any) => setBooks(res.data))
+                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data))
                 setDeleteModal(false)
             }
         })
@@ -157,70 +171,188 @@ export default function ManageBooksPage() {
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
 
+    const [isAuthorModalOpen, setIsAuthorModalOpen]: any = useState(false)
+    const [isPnfModalOpen, setIsPnfModalOpen]: any = useState(false)
+
+    const [modalContext, setModalContext] = useState<'filter' | 'form'>('form')
+
+    const [createValues, setCreateValues]: any = useState({ title: "", description: "", pnfs: ["GENERAL"] as string[], authorIds: [] as string[], pdfUrl: "" });
+    const [editValues, setEditValues]: any = useState({ title: "", description: "", pnfs: [] as string[], authorIds: [] as string[], pdfUrl: "" });
+
     const pathname = usePathname();
     const router = useRouter();
 
     const { page, setPage, totalPages } = usePagination()
     const [searchInput, setSearchInput] = useState('')
     const [limit, setLimit] = useState(10)
-    const [pnfFilter, setPnfFilter] = useState('') // Estado para el filtro de la vista principal
+    const [pnfFilter, setPnfFilter] = useState('')
 
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit, page, pnf: pnfFilter })
+    const [authorFilterIds, setAuthorFilterIds] = useState<string[]>([])
+
+    // 💡 CLAVE DE LA VICTORIA: Estado reactivo local para renderizar controles en tiempo real
+    const [calculatedItems, setCalculatedItems] = useState(0)
+
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
     const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({
-        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, setDeleteModal, setCreateModal, setEditModal, search: searchInput
+        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, authorFilterIds, setDeleteModal, setCreateModal, setEditModal, search: searchInput, createValues, editValues, createModal
     })
+
+    useEffect(() => {
+        if (selectedBook) {
+            const defaultUrl = selectedBook.routepdf?.startsWith('http') && !selectedBook.routepdf.includes('supabase') ? selectedBook.routepdf : '';
+            setEditValues({
+                title: selectedBook.title || "",
+                description: selectedBook.description || "",
+                pnfs: selectedBook.pnfs?.map((p: any) => p.pnf) || [],
+                authorIds: selectedBook.authors?.map((a: any) => a.id) || [],
+                pdfUrl: defaultUrl
+            });
+            if (defaultUrl) setUploadMode("url");
+            else setUploadMode("file");
+        }
+    }, [selectedBook]);
+
+    useEffect(() => {
+        if (createModal) {
+            setCreateValues({ title: "", description: "", pnfs: ["GENERAL"], authorIds: [], pdfUrl: "" });
+            setUploadMode("file");
+        }
+    }, [createModal]);
+
+    const handleCreateAIExtract = (data: any) => {
+        setCreateValues((prev: any) => ({
+            title: data.title ?? prev.title,
+            description: data.description ?? prev.description,
+            pnfs: data.pnfs ?? (data.pnf ? [data.pnf] : prev.pnfs),
+            authorIds: data.authorIds ?? prev.authorIds,
+            pdfUrl: data.routepdf ?? data.pdfUrl ?? prev.pdfUrl,
+            routeimg: data.routeimg ?? prev.routeimg
+        }));
+
+        if (data.routepdf || data.pdfUrl) setUploadMode("url");
+    };
+
+    const handleEditAIExtract = (data: any) => {
+        setEditValues((prev: any) => ({
+            title: data.title ?? prev.title,
+            description: data.description ?? prev.description,
+            pnfs: data.pnfs ?? (data.pnf ? [data.pnf] : prev.pnfs),
+            authorIds: data.authorIds ?? prev.authorIds,
+            pdfUrl: data.routepdf ?? data.pdfUrl ?? prev.pdfUrl,
+            routeimg: data.routeimg ?? prev.routeimg
+        }));
+
+        if (data.routepdf || data.pdfUrl) setUploadMode("url");
+    };
+
+    const refreshTableData = () => {
+        getBooks({ search: searchInput, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
+            .then(data => {
+                setUseAllBooks(data.data)
+                totalPages.current = data.totalPages
+                // 💡 Sincronizamos las matemáticas de ítems al refrescar
+                setCalculatedItems((data.totalPages || 1) * limit)
+            })
+    }
 
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', searchInput)
         params.set('limit', limit.toString())
+        params.set('page', page.toString()) // Aseguramos persistencia de la página
         if (pnfFilter) params.set('pnf', pnfFilter)
+        if (authorFilterIds.length > 0) params.set('authors', authorFilterIds.join(','))
         router.push(`${pathname}?${params}`)
 
-        getBooks({ search: searchInput, limit, page, pnf: pnfFilter })
-            .then(data => {
-                setUseAllBooks(data.data)
-                totalPages.current = data.totalPages
-            })
-    }, [searchInput, limit, page, pnfFilter]);
+        refreshTableData()
+    }, [searchInput, limit, page, pnfFilter, authorFilterIds]);
+
+    const handleAuthorModalChange = (ids: string[]) => {
+        if (modalContext === 'filter') {
+            setAuthorFilterIds(ids)
+            setPage(1) // Al filtrar por autor volvemos a la primera página
+        } else if (createModal) {
+            setCreateValues({ ...createValues, authorIds: ids })
+        } else if (editModal) {
+            setEditValues({ ...editValues, authorIds: ids })
+        }
+    }
 
     return (
-        <section className="flex flex-col gap-4 p-4 max-w-7xl mx-auto w-full">
+        <section className="relative flex flex-col gap-4 p-4 max-w-7xl mx-auto w-full">
             <h1 className="text-2xl md:text-3xl font-bold">Gestionar Libros <span className="text-blue-600">(admin)</span></h1>
 
-            {/* BARRA DE BÚSQUEDA RESPONSIVE */}
-            <div className="flex flex-col sm:flex-row gap-3 items-end w-full">
-                <div className="w-full sm:w-24">
+            {/* BARRA DE BÚSQUEDA Y FILTROS OPTIMIZADA */}
+            <div className="flex flex-col sm:flex-row gap-3 items-end w-full bg-slate-50 dark:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-900">
+                <div className="w-full sm:w-28">
                     <Label>Cantidad</Label>
-                    <Input type="number" placeholder="10" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        const limi = parseInt(e.target.value)
-                        setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
-                    }}></Input>
+                    <select
+                        value={limit}
+                        onChange={(e) => {
+                            setLimit(parseInt(e.target.value) || 10)
+                            setPage(1) // Regresar a la 1 al alterar filas
+                        }}
+                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value={10}>10 filas</option>
+                        <option value={20}>20 filas</option>
+                        <option value={30}>30 filas</option>
+                    </select>
                 </div>
 
                 <div className="w-full sm:flex-1">
-                    <Label>Buscar por Texto</Label>
-                    <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+                    <Label>Buscar por Nombre / Texto</Label>
+                    <Input
+                        className="w-full"
+                        placeholder="Escribe el nombre del libro..."
+                        defaultValue={searchInput}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            setSearchInput(e.target.value)
+                            setPage(1)
+                        }}
+                    />
                 </div>
 
-                <div className="w-full sm:w-56">
+                <div className="w-full sm:w-48">
                     <Label>Filtrar por PNF</Label>
                     <select
                         value={pnfFilter}
-                        onChange={(e) => setPnfFilter(e.target.value)}
-                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white"
+                        onChange={(e) => {
+                            setPnfFilter(e.target.value)
+                            setPage(1)
+                        }}
+                        className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">TODOS LOS PNF</option>
                         {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
                     </select>
                 </div>
 
-                <Button className="w-full sm:w-auto h-11 whitespace-nowrap" onClick={() => setCreateModal(true)}>Añadir Libro</Button>
+                <div className="w-full sm:w-48 flex flex-col gap-1">
+                    <Label>Filtrar por Autor</Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-11 text-xs justify-between"
+                        onClick={() => { setModalContext('filter'); setIsAuthorModalOpen(true); }}
+                    >
+                        <span>{authorFilterIds.length > 0 ? `Autores (${authorFilterIds.length})` : "Todos los autores"}</span>
+                    </Button>
+                </div>
+
+                <Button type="button" className="w-full sm:w-auto h-11 whitespace-nowrap px-6" onClick={() => setCreateModal(true)}>Añadir Libro</Button>
             </div>
 
-            <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>
+            {/* 💡 CONTROLES DE PAGINACIÓN ACTUALIZADOS Y CONDICIONADOS */}
+            {books && books.length > 0 && (
+                <Pagination
+                    page={page}
+                    setPage={setPage}
+                    totalItems={calculatedItems}
+                    limit={limit}
+                />
+            )}
 
-            {/* GRID TOTALMENTE RESPONSIVE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {books && books.map((book: any) => (
                     <BookManageCard
@@ -230,7 +362,7 @@ export default function ManageBooksPage() {
                         id={book.id}
                         title={book.title}
                         description={book.description}
-                        pnf={book.pnf} // 💡 Pasamos el PNF a la tarjeta
+                        pnf={book.pnfs?.map((p: any) => p.pnf).join(', ') || 'GENERAL'}
                     />
                 ))}
             </div>
@@ -238,22 +370,38 @@ export default function ManageBooksPage() {
             {/* MODAL CREAR */}
             {createModal &&
                 <GenericModalContainer>
-                    <div className="flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
-                    <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full">
+                    <div className="flex justify-end">
+                        <Button type="button" onClick={() => setCreateModal(false)}>X</Button>
+                    </div>
+                    <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full mb-4">
                         <div>
                             <Label>Título del libro</Label>
-                            <Input name="title" placeholder="Mago de Oz" ></Input>
+                            <Input name="title" placeholder="Mago de Oz" defaultValue={createValues.title} onChange={(e: any) => setCreateValues({ ...createValues, title: e.target.value })}></Input>
                         </div>
                         <div>
                             <Label isRequired={false}>Descripción</Label>
-                            <Input name="description" placeholder="Las aventuras de Dorothy..."></Input>
+                            <Input name="description" placeholder="Las aventuras de Dorothy..." defaultValue={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })}></Input>
                         </div>
-                        <div>
-                            <Label>PNF</Label>
-                            <select name="pnf" className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white">
-                                {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
-                            </select>
+
+                        <div className="flex flex-col gap-1">
+                            <Label>Autores Seleccionados ({createValues.authorIds.length})</Label>
+                            <Button type="button" onClick={() => { setModalContext('form'); setIsAuthorModalOpen(true); }}>
+                                Vincular Autores
+                            </Button>
                         </div>
+
+                        <div className="flex flex-col gap-1">
+                            <Label>PNFs Vinculados</Label>
+                            <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
+                                {createValues.pnfs.map((p: any) => (
+                                    <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
+                                ))}
+                            </div>
+                            <Button type="button" onClick={() => setIsPnfModalOpen(true)}>
+                                Asignar Áreas PNF
+                            </Button>
+                        </div>
+
                         <div>
                             <Label>Método de PDF</Label>
                             <div className="flex gap-4 mb-2">
@@ -267,33 +415,51 @@ export default function ManageBooksPage() {
                             {uploadMode === "file" ? (
                                 <Input type="file" name="pdf"></Input>
                             ) : (
-                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf"></Input>
+                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" defaultValue={createValues.pdfUrl} onChange={(e: any) => setCreateValues({ ...createValues, pdfUrl: e.target.value })}></Input>
                             )}
                         </div>
-                        <Button>Guardar</Button>
+                        <Button type="submit">Guardar</Button>
                     </form>
+
+                    <BookFormChatbot mode="create" onExtract={handleCreateAIExtract} />
                 </GenericModalContainer>
             }
 
             {/* MODAL EDITAR */}
             {(editModal && selectedBook) &&
                 <GenericModalContainer>
-                    <div className="flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                    <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full">
+                    <div className="flex justify-end">
+                        <Button type="button" onClick={() => setEditModal(false)}>X</Button>
+                    </div>
+                    <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full mb-4">
                         <div>
                             <Label>Título del libro</Label>
-                            <Input defaultValue={selectedBook.title} name="title" placeholder="Mago de Oz" ></Input>
+                            <Input name="title" placeholder="Mago de Oz" defaultValue={editValues.title} onChange={(e: any) => setEditValues({ ...editValues, title: e.target.value })}></Input>
                         </div>
                         <div>
                             <Label isRequired={false}>Descripción</Label>
-                            <Input defaultValue={selectedBook.description} name="description" placeholder="Las aventuras de Dorothy..."></Input>
+                            <Input name="description" placeholder="Las aventuras de Dorothy..." defaultValue={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })}></Input>
                         </div>
-                        <div>
-                            <Label>PNF</Label>
-                            <select name="pnf" defaultValue={selectedBook.pnf} className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white">
-                                {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
-                            </select>
+
+                        <div className="flex flex-col gap-1">
+                            <Label>Autores Seleccionados ({editValues.authorIds.length})</Label>
+                            <Button type="button" onClick={() => { setModalContext('form'); setIsAuthorModalOpen(true); }}>
+                                Vincular Autores
+                            </Button>
                         </div>
+
+                        <div className="flex flex-col gap-1">
+                            <Label>PNFs Vinculados</Label>
+                            <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
+                                {editValues.pnfs.map((p: any) => (
+                                    <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
+                                ))}
+                            </div>
+                            <Button type="button" onClick={() => setIsPnfModalOpen(true)}>
+                                Asignar Áreas PNF
+                            </Button>
+                        </div>
+
                         <div>
                             <Label>Método de PDF</Label>
                             <div className="flex gap-4 mb-2">
@@ -307,25 +473,51 @@ export default function ManageBooksPage() {
                             {uploadMode === "file" ? (
                                 <Input type="file" name="pdf"></Input>
                             ) : (
-                                <Input type="url" name="pdfUrl" defaultValue={selectedBook.routepdf.startsWith('http') && !selectedBook.routepdf.includes('supabase') ? selectedBook.routepdf : ''} placeholder="https://ejemplo.com/libro.pdf"></Input>
+                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" defaultValue={editValues.pdfUrl} onChange={(e: any) => setEditValues({ ...editValues, pdfUrl: e.target.value })}></Input>
                             )}
                         </div>
-                        <Button>Guardar</Button>
+                        <Button type="submit">Guardar</Button>
                     </form>
-                </GenericModalContainer>}
+
+                    <BookFormChatbot mode="edit" currentBook={selectedBook} onExtract={handleEditAIExtract} />
+                </GenericModalContainer>
+            }
 
             {/* MODAL ELIMINAR */}
             {(deleteModal && selectedBook) &&
                 <GenericModalContainer>
-                    <div className="flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
+                    <div className="flex justify-end">
+                        <Button type="button" onClick={() => setDeleteModal(false)}>X</Button>
+                    </div>
                     <form onSubmit={handleDeleteSubmit} className="flex flex-col gap-3 text-center">
                         <h3 className="text-lg font-bold">¿Seguro de que quieres eliminar {selectedBook.title}?</h3>
                         <div className="flex gap-3 justify-center">
-                            <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
-                            <Button className="bg-red-600 text-white">Eliminar</Button>
+                            <Button type="button" onClick={() => setDeleteModal(false)}>Cancelar</Button>
+                            <Button type="submit" className="bg-red-600 text-white">Eliminar</Button>
                         </div>
                     </form>
-                </GenericModalContainer>}
+                </GenericModalContainer>
+            }
+
+            <AuthorSelectorModal
+                isOpen={isAuthorModalOpen}
+                onClose={() => setIsAuthorModalOpen(false)}
+                selectedIds={modalContext === 'filter' ? authorFilterIds : (createModal ? createValues.authorIds : editValues.authorIds)}
+                onChange={handleAuthorModalChange}
+            />
+
+            <PnfSelectorModal
+                isOpen={isPnfModalOpen}
+                onClose={() => setIsPnfModalOpen(false)}
+                options={PNF_OPTIONS}
+                selectedPnfs={createModal ? createValues.pnfs : editValues.pnfs}
+                onChange={(pnfs: any) => {
+                    if (createModal) setCreateValues({ ...createValues, pnfs })
+                    else if (editModal) setEditValues({ ...editValues, pnfs })
+                }}
+            />
+
+            <BookBulkChatbot onSuccessExecute={refreshTableData} />
         </section>
     )
 }

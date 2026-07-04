@@ -17,18 +17,16 @@ import ItemTypeSearcher from "../form/input/types/ItemTypeSearcher"
 import Pagination from "../pagination/OwnPaginator"
 import usePagination from "@/hooks/usePaginationOwn"
 import TypeFilter from "../filters/items/TypeFilter"
-import dynamic from 'next/dynamic';
+import dynamic from 'next/dynamic'
+import InventoryFormChatbot from "@/components/chatbot/inventory/InventoryFormChatbot"
 
-// Esto le dice a Next: "No intentes renderizar esto en el servidor, espera al navegador"
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
     { ssr: false }
 );
 
-
 export const useItems = ({ search, limit }: any) => {
     const [items, setItems] = useState([])
-
 
     const getItems = async ({ search, limit = 10, page = 1, type }: any) => {
         return fetch(`/api/inventory?page=${page ?? ''}&type=${type ?? ''}&search=${search ?? ''}&limit=${limit ?? 10}`).then(res => res.json()).then(data => {
@@ -44,25 +42,48 @@ export const useItems = ({ search, limit }: any) => {
     return { items, setItems, getItems }
 }
 
-
 export default function InventoryManagePage({ }) {
-    //search handler
     const { page, setPage, totalPages } = usePagination()
     const [search, setSearch] = useState('')
     const [type, setType] = useState('')
     const [limit, setLimit] = useState('10')
-    //routing
+
     const pathname = usePathname()
     const router = useRouter()
-    //books
+
     const { items, setItems, getItems } = useItems({ search, limit })
-    //modals
     const { createModal, setCreateModal, editModal, setEditModal, deleteModal, setDeleteModal } = useManageModals()
     const [selectedItem, setSelectedItem]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
-    //http responses handler
-    const { handleCreateType, handleDeleteType, handleCreateSubmit, handleDeleteSubmit, handleEditSubmit } = useHttpRequests({ setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal })
+    // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
+    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
+    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
+
+    const { handleCreateType, handleDeleteType, handleCreateSubmit, handleDeleteSubmit, handleEditSubmit } = useHttpRequests({
+        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal
+    })
+
+    // Sincronizar el formulario de edición cuando seleccionas un item de la tabla
+    useEffect(() => {
+        if (selectedItem) {
+            setEditValues({
+                name: selectedItem.name || '',
+                code: selectedItem.code || '',
+                description: selectedItem.description || '',
+                stock: selectedItem.totalStock?.toString() || '0',
+                typeName: selectedItem.type?.name || '',
+                typeId: selectedItem.type?.id || '' // 💡 Extraemos el ID real correspondiente al tipo
+            })
+        }
+    }, [selectedItem])
+
+    // Limpiar el estado de creación cada vez que se decide añadir un nuevo item
+    useEffect(() => {
+        if (createModal) {
+            setCreateValues({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
+        }
+    }, [createModal])
 
     useEffect(() => {
         const params = new URLSearchParams()
@@ -76,24 +97,41 @@ export default function InventoryManagePage({ }) {
             setItems(res.data)
             totalPages.current = res.totalPages
         })
-
-
     }, [search, limit, page, type])
 
+    const handleAICreateExtract = (data: any) => {
+        setCreateValues(prev => ({
+            ...prev,
+            name: data.name ?? prev.name,
+            code: data.code ?? prev.code,
+            description: data.description ?? prev.description,
+            stock: data.stock ?? prev.stock,
+            typeName: data.typeName ?? prev.typeName,
+            typeId: data.typeId ?? prev.typeId
+        }))
+    }
 
-
+    const handleAIEditExtract = (data: any) => {
+        setEditValues(prev => ({
+            ...prev,
+            name: data.name ?? prev.name,
+            code: data.code ?? prev.code,
+            description: data.description ?? prev.description,
+            stock: data.stock ?? prev.stock,
+            typeName: data.typeName ?? prev.typeName,
+            typeId: data.typeId ?? prev.typeId
+        }))
+    }
 
     return <div className="flex flex-col gap-3">
 
         <h1 className="text-3xl font-bold">Inventario</h1>
 
         <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-
             <div>
                 <Label>Nombre del Item</Label>
                 <Input onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} placeholder="Nombre del item"></Input>
             </div>
-
 
             <div>
                 <Label>Cantidad por Pagina</Label>
@@ -103,8 +141,6 @@ export default function InventoryManagePage({ }) {
                     } else {
                         setLimit(e.currentTarget.value)
                     }
-
-
                 }} placeholder="Cantidad"></Input>
             </div>
 
@@ -115,75 +151,82 @@ export default function InventoryManagePage({ }) {
 
         <Pagination totalItems={totalPages.current} limit={limit} page={page} setPage={setPage}></Pagination>
 
-
+        {/* MODAL CREAR */}
         {createModal && <GenericModalContainer>
             <div>
                 <div className="flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
 
-                <form encType="multipart/form-data" action="" onSubmit={handleCreateSubmit} className="flex flex-col gap-2">
-
+                <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-2 pb-14">
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
-                        <Input name='name' placeholder="Nombre"></Input>
+                        <Input name='name' defaultValue={createValues.name} onChange={(e: any) => setCreateValues({ ...createValues, name: e.target.value })} placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Código</Label>
-                        <Input name='code' placeholder="Nombre"></Input>
+                        <Input name='code' defaultValue={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} placeholder="Código"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Descripcion</Label>
-                        <Input name='description' placeholder="Descripcion"></Input>
+                        <Input name='description' defaultValue={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })} placeholder="Descripcion"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label>Stock</Label>
-                        <Input name='stock' type='number' placeholder="Cantidad..."></Input>
+                        <Input name='stock' type='number' defaultValue={createValues.stock} onChange={(e: any) => setCreateValues({ ...createValues, stock: e.target.value })} placeholder="Cantidad..."></Input>
                     </div>
 
-                    <ItemTypeSearcher></ItemTypeSearcher>
+                    {/* 💡 Enviamos un objeto unificado con name e id mapeado desde createValues */}
+                    <ItemTypeSearcher name="typeName" defaultValue={createValues.typeName ? { name: createValues.typeName, id: createValues.typeId } : undefined}></ItemTypeSearcher>
 
                     <Button>Subir</Button>
                 </form>
+
+                <InventoryFormChatbot mode="create" onExtract={handleAICreateExtract} />
             </div>
         </GenericModalContainer>}
 
+        {/* MODAL EDITAR */}
         {(editModal && selectedItem) && <GenericModalContainer>
             <div>
                 <div className="flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                <form encType="multipart/form-data" action="" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEditSubmit(e)} className="flex flex-col gap-2">
+                <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-2 pb-14">
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
-                        <Input defaultValue={selectedItem.name} name='name' placeholder="Nombre"></Input>
+                        <Input defaultValue={editValues.name} onChange={(e: any) => setEditValues({ ...editValues, name: e.target.value })} name='name' placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Código</Label>
-                        <Input defaultValue={selectedItem.code} name='code' placeholder="Nombre"></Input>
+                        <Input defaultValue={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name='code' placeholder="Código"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Descripcion</Label>
-                        <Input defaultValue={selectedItem.description} name='description' placeholder="Descripcion"></Input>
+                        <Input defaultValue={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })} name='description' placeholder="Descripcion"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label>Stock</Label>
-                        <Input defaultValue={selectedItem.totalStock} name='stock' type='number' placeholder="Cantidad..."></Input>
+                        <Input defaultValue={editValues.stock} onChange={(e: any) => setEditValues({ ...editValues, stock: e.target.value })} name='stock' type='number' placeholder="Cantidad..."></Input>
                     </div>
 
-                    <ItemTypeSearcher defaultValue={selectedItem.type}></ItemTypeSearcher>
+                    {/* 💡 Pasamos la estructura completa requerida para alimentar el useEffect del buscador interno */}
+                    <ItemTypeSearcher name="typeName" defaultValue={editValues.typeName ? { name: editValues.typeName, id: editValues.typeId } : null}></ItemTypeSearcher>
 
                     <Button>Subir</Button>
                 </form>
+
+                <InventoryFormChatbot mode="edit" currentItem={selectedItem} onExtract={handleAIEditExtract} />
             </div>
         </GenericModalContainer>}
 
+        {/* MODAL ELIMINAR */}
         {deleteModal && <GenericModalContainer>
             <div>
                 <div className="flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
-                <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)}>
+                <form onSubmit={handleDeleteSubmit}>
                     <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedItem.name}?</h3>
                     <div className="flex justify-center">
                         <Button className="bg-red-600 mt-3">Eliminar</Button>
@@ -192,13 +235,11 @@ export default function InventoryManagePage({ }) {
             </div>
         </GenericModalContainer>}
 
-
         {items && <ManageItemsTable
             onDelete={(item: any) => {
                 setDeleteModal(true)
                 setSelectedItem(item)
             }}
-
             onEdit={(item: any) => {
                 setEditModal(true)
                 setSelectedItem(item)
@@ -207,25 +248,20 @@ export default function InventoryManagePage({ }) {
 
         {typeModal.create && <GenericModalContainer>
             <div className="flex-1 flex justify-end"><Button onClick={() => setTypeModal({ ...typeModal, create: false })}>X</Button></div>
-            <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateType(e)} className="flex flex-col gap-2">
-
+            <form onSubmit={handleCreateType} className="flex flex-col gap-2">
                 <Label>Tipo</Label>
                 <Input name="name"></Input>
                 <Button>Crear</Button>
             </form>
         </GenericModalContainer>}
 
-
         {typeModal.delete && <GenericModalContainer>
             <div className="flex-1 flex justify-end"><Button onClick={() => setTypeModal({ ...typeModal, delete: false })}>X</Button></div>
-            <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteType(e)} className="flex flex-col gap-2">
-
+            <form onSubmit={handleDeleteType} className="flex flex-col gap-2">
                 <ItemTypeSearcher></ItemTypeSearcher>
                 <Button>Eliminar</Button>
             </form>
         </GenericModalContainer>}
-
-
 
         <div>
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl shadow-sm">
@@ -240,13 +276,8 @@ export default function InventoryManagePage({ }) {
                     </div>
                 </div>
 
-                {/* ✅ SOLO 2 BOTONES */}
                 <div className="flex gap-2 ml-auto">
-                    <Button
-                        size="sm"
-                        className=""
-                        onClick={() => setTypeModal({ ...typeModal, create: true })} // ✅ Abre modal añadir
-                    >
+                    <Button size="sm" onClick={() => setTypeModal({ ...typeModal, create: true })}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -257,7 +288,7 @@ export default function InventoryManagePage({ }) {
                         size="sm"
                         variant="outline"
                         className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 hover:text-red-800 shadow-sm px-6 py-2.5"
-                        onClick={() => setTypeModal({ ...typeModal, delete: true })} // ✅ Abre modal eliminar
+                        onClick={() => setTypeModal({ ...typeModal, delete: true })}
                     >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -265,14 +296,10 @@ export default function InventoryManagePage({ }) {
                         Eliminar
                     </Button>
                 </div>
-
             </div>
         </div>
-
-
     </div>
 }
-
 
 const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -282,24 +309,20 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
             const result = handleResponses(data)
             if (result) {
                 getItems({ search, limit, type }).then((res: any) => {
-
-
                     setItems(res.data)
                     totalPages.current = res.totalPages
-
                 })
             }
         })
-
     }
 
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const data = new FormData(e.currentTarget)
         fetch(`/api/inventory/${selectedItem.id}`, {
-            method: 'PATCH', body: JSON.stringify(Object.fromEntries(data.entries())), headers: {
-                'Content-Type': 'application/json'
-            }
+            method: 'PATCH',
+            body: JSON.stringify(Object.fromEntries(data.entries())),
+            headers: { 'Content-Type': 'application/json' }
         }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
@@ -313,7 +336,6 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
 
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/inventory/${selectedItem.id}`, fetchDeleteConfig()).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
@@ -329,7 +351,6 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
 
     const handleCreateType = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-
         const form = new FormData(e.currentTarget)
         const data = Object.fromEntries(form.entries())
 
@@ -340,7 +361,6 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
 
     const handleDeleteType = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-
         const form = new FormData(e.currentTarget)
         const data = Object.fromEntries(form.entries())
 
