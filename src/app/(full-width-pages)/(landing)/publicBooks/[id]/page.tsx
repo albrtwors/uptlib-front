@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Navbar from "@/components/landing/navbar/Navbar"
 
-export default function PublicBookDetailPage() {
+// 1️⃣ Componente interno con la lógica de consulta y renderizado del detalle
+function PublicBookDetailContent() {
     const { id } = useParams()
     const router = useRouter()
     const [book, setBook] = useState<any>(null)
@@ -37,10 +38,10 @@ export default function PublicBookDetailPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-            {/* 💡 Navbar inteligente reutilizada sin parámetros de scroll */}
+            {/* Navbar inteligente reutilizada sin parámetros de scroll */}
             <Navbar />
 
-            {/* 💡 pt-28 añadido para evitar colisiones con el Navbar fixed */}
+            {/* pt-28 añadido para evitar colisiones con el Navbar fixed */}
             <section className="max-w-5xl mx-auto p-6 pt-28 w-full flex flex-col gap-6">
                 <button
                     onClick={() => router.back()}
@@ -53,23 +54,19 @@ export default function PublicBookDetailPage() {
                     {/* Panel de Metadatos e Información */}
                     <div className="md:col-span-1 bg-white/80 backdrop-blur-xs border border-gray-100 p-6 rounded-2xl shadow-sm flex flex-col gap-4">
                         <div>
-                            {/* 🔥 Corregido con opcional chaining */}
                             <span className="text-xs font-bold uppercase bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">
                                 {book?.pnf || "General"}
                             </span>
                         </div>
 
-                        {/* 🔥 Corregido con opcional chaining */}
                         <h1 className="text-2xl font-bold text-gray-900">
                             {book?.title}
                         </h1>
 
-                        {/* 🔥 Corregido con opcional chaining */}
                         <p className="text-gray-600 text-sm leading-relaxed border-t border-gray-100 pt-3">
                             {book?.description || "Este ejemplar no posee una descripción detallada en el sistema."}
                         </p>
 
-                        {/* 🔥 Corregido con opcional chaining */}
                         {book?.routepdf && (
                             <a
                                 href={book.routepdf}
@@ -84,12 +81,11 @@ export default function PublicBookDetailPage() {
 
                     {/* Visor de Documento Completo con iFrame */}
                     <div className="md:col-span-2 w-full flex flex-col gap-3">
-                        {/* 🔥 Corregido con opcional chaining */}
                         {book?.routepdf ? (
                             <div className="w-full bg-white border border-gray-200/60 p-2 rounded-2xl shadow-md overflow-hidden">
                                 <iframe
                                     src={`${book.routepdf}#toolbar=1`}
-                                    title={`Visor del libro: ${book.title}`}
+                                    title={`Visor del libro: ${book?.title || "Documento"}`}
                                     className="w-full h-[650px] rounded-xl border-none"
                                     allow="autoplay"
                                 />
@@ -103,5 +99,23 @@ export default function PublicBookDetailPage() {
                 </div>
             </section>
         </div>
+    )
+}
+
+// 2️⃣ Exportación por defecto obligatoria de Next.js protegida con el Suspense Boundary
+export default function PublicBookDetailPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p className="text-sm font-medium text-gray-500 animate-pulse">Iniciando vista de lectura...</p>
+                    </div>
+                </div>
+            }
+        >
+            <PublicBookDetailContent />
+        </Suspense>
     )
 }
