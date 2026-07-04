@@ -53,20 +53,24 @@ export default function PublicBookDetailPage() {
                     {/* Panel de Metadatos e Información */}
                     <div className="md:col-span-1 bg-white/80 backdrop-blur-xs border border-gray-100 p-6 rounded-2xl shadow-sm flex flex-col gap-4">
                         <div>
+                            {/* 🔥 Corregido con opcional chaining */}
                             <span className="text-xs font-bold uppercase bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">
-                                {book.pnf || "General"}
+                                {book?.pnf || "General"}
                             </span>
                         </div>
 
+                        {/* 🔥 Corregido con opcional chaining */}
                         <h1 className="text-2xl font-bold text-gray-900">
-                            {book.title}
+                            {book?.title}
                         </h1>
 
+                        {/* 🔥 Corregido con opcional chaining */}
                         <p className="text-gray-600 text-sm leading-relaxed border-t border-gray-100 pt-3">
-                            {book.description || "Este ejemplar no posee una descripción detallada en el sistema."}
+                            {book?.description || "Este ejemplar no posee una descripción detallada en el sistema."}
                         </p>
 
-                        {book.routepdf && (
+                        {/* 🔥 Corregido con opcional chaining */}
+                        {book?.routepdf && (
                             <a
                                 href={book.routepdf}
                                 target="_blank"
@@ -80,7 +84,8 @@ export default function PublicBookDetailPage() {
 
                     {/* Visor de Documento Completo con iFrame */}
                     <div className="md:col-span-2 w-full flex flex-col gap-3">
-                        {book.routepdf ? (
+                        {/* 🔥 Corregido con opcional chaining */}
+                        {book?.routepdf ? (
                             <div className="w-full bg-white border border-gray-200/60 p-2 rounded-2xl shadow-md overflow-hidden">
                                 <iframe
                                     src={`${book.routepdf}#toolbar=1`}
