@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, usePathname, useRouter } from "next/navigation"
 import BookCard from "@/components/cards/BookCard"
 import Input from "@/components/form/input/InputField"
@@ -11,7 +11,8 @@ import Button from "@/components/ui/button/Button"
 import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
 import usePagination from "@/hooks/usePaginationOwn"
 
-export default function PublicBooksPage() {
+// 1️⃣ Componente con toda la lógica reactiva y la maquetación de tu catálogo
+function PublicBooksCatalogContent() {
     const searchParams = useSearchParams()
     const pathname = usePathname()
     const router = useRouter()
@@ -148,7 +149,7 @@ export default function PublicBooksPage() {
                     </div>
                 </div>
 
-                {/* 💡 CONTROLES DE PAGINACIÓN VISIBLES CON MATEMÁTICA CORREGIDA */}
+                {/* CONTROLES DE PAGINACIÓN VISIBLES CON MATEMÁTICA CORREGIDA */}
                 {books.length > 0 && (
                     <div className="flex justify-end">
                         <Pagination
@@ -195,5 +196,23 @@ export default function PublicBooksPage() {
                 }}
             />
         </div>
+    )
+}
+
+// 2️⃣ Export por defecto envuelto en un límite de Suspense para calmar el Build de Vercel
+export default function PublicBooksPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p className="text-sm font-medium text-gray-500 animate-pulse">Cargando catálogo de la biblioteca...</p>
+                    </div>
+                </div>
+            }
+        >
+            <PublicBooksCatalogContent />
+        </Suspense>
     )
 }
