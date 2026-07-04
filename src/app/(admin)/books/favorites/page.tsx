@@ -63,7 +63,7 @@ export default function BooksPage() {
 
         <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit} ></Pagination>
         <div className="grid gap-3 lg:grid-cols-4 md:grid-cols-2 grid-cols-1">
-            {books?.map((book: any) => <BookCard handleQuit={() => {
+            {books?.map((book: any) => <BookCard pnf={book.book.pnfs.map((p: any) => p.pnf).join(', ')} handleQuit={() => {
                 getBooks({ search, limit, page }).then((res: any) => {
                     setUseAllBooks(res.data)
                 })
