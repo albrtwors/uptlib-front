@@ -46,11 +46,11 @@ export default function ManagePhysicalBooksPage() {
     const { page, setPage, totalPages } = usePagination()
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit, page, totalPages })
 
-    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, page, createValues, editValues })
-
     // 💡 ESTADOS PARA PODER INTERCEPTAR EL COMPORTAMIENTO DE LA IA Y CONTROLAR LOS INPUTS
     const [createValues, setCreateValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[] })
     const [editValues, setEditValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[], })
+
+    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, page, createValues, editValues })
 
     // Limpiar estados al abrir el modal de creación
     useEffect(() => {

@@ -59,8 +59,8 @@ export default function InventoryManagePage({ }) {
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
     // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
-    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
-    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
+    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [] as string[], categoryIds: [] as string[] })
+    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [] as string[], categoryIds: [] as string[] })
 
     // 💡 Estados de los modales de selección múltiple de autores y categorías
     const [authorModal, setAuthorModal] = useState({ create: false, edit: false })
