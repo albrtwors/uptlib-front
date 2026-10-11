@@ -6,6 +6,7 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import { fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig";
 import { SwalAlert } from "@/hooks/lib/swal/swal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { ChangeEvent, ChangeEventHandler, useState } from "react";
 
 const useSingUpForm = () => {
@@ -31,33 +32,32 @@ export const handleInputChangeWithErrorShowing = (e: ChangeEvent<HTMLInputElemen
 
 export default function SignUpForm() {
   const { credentials, setCredentials } = useSingUpForm()
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const formData = new FormData(e.currentTarget)
     const data = Object.fromEntries(formData)
 
-    fetch('/api/users/register', fetchPostConfig(data)).then((res: Response) => {
-      try {
-        if (!res.ok) {
-          SwalAlert.fire({ title: 'Error', text: 'Asegúrate de cumplir el formato de todas las credenciales', icon: 'error' })
-          return
-        }
-        if (res.status === 201) {
-          SwalAlert.fire({ title: 'Éxito', text: 'Usuario registrado', icon: 'success' })
-          return
-        }
+    try {
+      const res = await fetch('/api/auth/register', fetchPostConfig(data))
+      const body = await res.json().catch(() => ({}))
 
-        throw new Error('Hubo un error')
-      } catch (error) {
-        console.error(error)
+      if (!res.ok) {
+        const text = Array.isArray(body?.message) ? body.message[0] : body?.message
+        SwalAlert.fire({ title: 'Error', text: text || 'Asegúrate de cumplir el formato de todas las credenciales', icon: 'error' })
+        return
       }
-    })
 
-
+      await SwalAlert.fire({ title: 'Éxito', text: 'Usuario registrado. Te enviamos un código de verificación a tu correo.', icon: 'success' })
+      router.push(`/verify-email?email=${encodeURIComponent(String(data.email))}`)
+    } catch (error) {
+      console.error(error)
+      SwalAlert.fire({ title: 'Error', text: 'Ocurrió un error, inténtalo de nuevo', icon: 'error' })
+    }
   }
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">

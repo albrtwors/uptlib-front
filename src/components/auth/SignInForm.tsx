@@ -19,26 +19,41 @@ export default function SignInForm() {
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
-    console.log(data);
 
     try {
       const res = await fetch('/api/auth/login', fetchPostConfig(data));
+      const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        SwalAlert.fire({ title: 'Error', text: 'Credenciales incorrectos', icon: 'error' });
+        const text = Array.isArray(body?.message) ? body.message[0] : body?.message;
+
+        // Cuenta sin verificar: ofrecemos ir a la pantalla de verificación
+        if (res.status === 403) {
+          const result = await SwalAlert.fire({
+            title: 'Correo no verificado',
+            text: text || 'Debes verificar tu correo antes de iniciar sesión',
+            icon: 'warning',
+          });
+          if (result?.isConfirmed) {
+            router.push(`/verify-email?email=${encodeURIComponent(String(data.email))}`);
+          }
+          return;
+        }
+
+        SwalAlert.fire({ title: 'Error', text: text || 'Credenciales incorrectas', icon: 'error' });
         return;
       }
 
-      // 1. Primero lanzamos la alerta de éxito
-      SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
+      // 1. Esperamos a que el usuario cierre la alerta de éxito
+      await SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
 
-      // 2. Inmediatamente después dejamos programado el redireccionamiento seguro
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
+      // 2. Navegamos al dashboard y refrescamos para que el layout valide la cookie ya establecida
+      router.replace('/');
+      router.refresh();
 
     } catch (error) {
       console.error(error);
+      SwalAlert.fire({ title: 'Error', text: 'Ocurrió un error, inténtalo de nuevo', icon: 'error' });
     }
   };
 
@@ -99,7 +114,7 @@ export default function SignInForm() {
                     </span>
                   </div>
                   <Link
-                    href="/reset-password"
+                    href="/forgot-password"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Olvidaste tu contraseña?

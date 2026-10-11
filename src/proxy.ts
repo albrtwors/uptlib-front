@@ -53,15 +53,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
 }
 
+const PUBLIC_ROUTES = ['/signin', '/signup', '/welcome', '/verify-email', '/forgot-password', '/reset-password'];
+
 const sessionProxy = (request: NextRequest, token: any, pathname: string) => {
     // 💡 También protegemos aquí agregando la validación para que no redirija al login si entran sin token
-    if (!token &&
-        pathname !== '/signin' &&
-        pathname !== '/signup' &&
-        pathname !== '/welcome' &&
-        pathname !== '/publicBooks' &&
-        !pathname.startsWith('/publicBooks/')
-    ) {
+    const isPublicRoute =
+        PUBLIC_ROUTES.includes(pathname) ||
+        pathname === '/publicBooks' ||
+        pathname.startsWith('/publicBooks/');
+
+    if (!token && !isPublicRoute) {
         return NextResponse.redirect(new URL('/signin', request.url));
     }
 }

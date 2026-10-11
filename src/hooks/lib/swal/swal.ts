@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2'
 export class SwalAlert {
     static fire(options: { title: string; text: string; icon: "success" | "error" | "warning" | "info" }) {
-        Swal.fire({
+        return Swal.fire({
             customClass: {
                 container: 'modal'
             },
