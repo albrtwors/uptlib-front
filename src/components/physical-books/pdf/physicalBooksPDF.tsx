@@ -142,11 +142,11 @@ const BooksPDF = ({ items = [], title = 'Catálogo de Libros Físicos' }: BooksP
                             </View>
 
                             <View style={[styles.cell, styles.colAuthor]}>
-                                <Text>{book.author?.name || 'N/A'}</Text>
+                                <Text>{(book.authors || []).map((a: any) => a.name).join(', ') || 'N/A'}</Text>
                             </View>
 
                             <View style={[styles.cell, styles.colCat]}>
-                                <Text>{book.category?.name || 'N/A'}</Text>
+                                <Text>{(book.categories || []).map((c: any) => c.name).join(', ') || 'N/A'}</Text>
                             </View>
 
                             <View style={[styles.cell, styles.colEdit]}>

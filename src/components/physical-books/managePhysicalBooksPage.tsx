@@ -13,6 +13,8 @@ import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
 import { useHttpSubmit } from "@/hooks/physicalBooks/useHttpSubmit"
 import AuthorSearcher from "../form/input/authors/AuthorSearcher"
 import CategorySearcher from "../form/input/category/categorySearcher"
+import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
+import CategorySelectorModal from "../form/category/CategorySelectorModal"
 import Select from "../form/Select"
 import { CATEGORIES } from "@/consts/categories"
 import ManagePhysicalBooksTable from "./tables/manageTable"
@@ -29,8 +31,8 @@ const ExportPDFButton = dynamic(
 
 export default function ManagePhysicalBooksPage() {
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
-    const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false })
-    const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false })
+    const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false, select: false })
+    const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false, select: false })
 
     const [selectedBook, setSelectedBook]: any = useState(null)
 
@@ -44,17 +46,17 @@ export default function ManagePhysicalBooksPage() {
     const { page, setPage, totalPages } = usePagination()
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit, page, totalPages })
 
-    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, page })
+    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, page, createValues, editValues })
 
     // 💡 ESTADOS PARA PODER INTERCEPTAR EL COMPORTAMIENTO DE LA IA Y CONTROLAR LOS INPUTS
-    const [createValues, setCreateValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any })
-    const [editValues, setEditValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any })
+    const [createValues, setCreateValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[] })
+    const [editValues, setEditValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[], })
 
     // Limpiar estados al abrir el modal de creación
     useEffect(() => {
         if (createModal) {
             setSelectedBook(null)
-            setCreateValues({ title: '', isbn: '', pnf: CATEGORIES[0] || '', yearOfPublication: '', editorial: '', totalStock: '', author: null, category: null })
+            setCreateValues({ title: '', isbn: '', pnf: CATEGORIES[0] || '', yearOfPublication: '', editorial: '', totalStock: '', author: null, category: null, authorIds: [], categoryIds: [] })
         }
     }, [createModal])
 
@@ -68,8 +70,10 @@ export default function ManagePhysicalBooksPage() {
                 yearOfPublication: selectedBook.yearOfPublication?.toString() || '',
                 editorial: selectedBook.editorial || '',
                 totalStock: selectedBook.availableStock?.toString() || '0',
-                author: selectedBook.author || null,
-                category: selectedBook.category || null
+                author: null,
+                category: null,
+                authorIds: (selectedBook.authors || []).map((a: any) => a.id),
+                categoryIds: (selectedBook.categories || []).map((c: any) => c.id)
             })
         }
     }, [selectedBook, editModal])
@@ -254,8 +258,15 @@ export default function ManagePhysicalBooksPage() {
                         <Label>ISBN</Label>
                         <Input defaultValue={createValues.isbn} onChange={(e: any) => setCreateValues({ ...createValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
                     </div>
-                    <AuthorSearcher defaultValue={createValues.author}></AuthorSearcher>
-                    <CategorySearcher defaultValue={createValues.category}></CategorySearcher>
+                    {/* 💡 Selección múltiple de autores y categorías (lógica copiada de libros digitales) */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
+                            Autores ({createValues.authorIds.length + (createValues.author ? 1 : 0)})
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, select: true })}>
+                            Categorías ({createValues.categoryIds.length + (createValues.category ? 1 : 0)})
+                        </Button>
+                    </div>
                     <div>
                         <Label>PNF</Label>
                         <select value={createValues.pnf} onChange={(e: any) => setCreateValues({ ...createValues, pnf: e.target.value })} name="pnf" className="p-2 rounded-lg border border-gray-300">
@@ -278,6 +289,20 @@ export default function ManagePhysicalBooksPage() {
                 </form>
                 {/* 🤖 Botón de IA para el formulario de Creación */}
                 <PhysicalBookFormChatbot mode="create" onExtract={handleAICreateExtract} />
+
+                {/* 💡 Modales de selección múltiple (crear) */}
+                <AuthorSelectorModal
+                    isOpen={authorModal.select}
+                    onClose={() => setAuthorModal({ ...authorModal, select: false })}
+                    selectedIds={createValues.authorIds}
+                    onChange={(ids) => setCreateValues({ ...createValues, authorIds: ids })}
+                />
+                <CategorySelectorModal
+                    isOpen={categoryModal.select}
+                    onClose={() => setCategoryModal({ ...categoryModal, select: false })}
+                    selectedIds={createValues.categoryIds}
+                    onChange={(ids) => setCreateValues({ ...createValues, categoryIds: ids })}
+                />
             </GenericModalContainer>
         }
 
@@ -294,8 +319,15 @@ export default function ManagePhysicalBooksPage() {
                         <Label>ISBN</Label>
                         <Input defaultValue={editValues.isbn} onChange={(e: any) => setEditValues({ ...editValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
                     </div>
-                    <AuthorSearcher defaultValue={editValues.author}></AuthorSearcher>
-                    <CategorySearcher defaultValue={editValues.category}></CategorySearcher>
+                    {/* 💡 Selección múltiple de autores y categorías al editar */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
+                            Autores ({editValues.authorIds.length + (editValues.author ? 1 : 0)})
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, select: true })}>
+                            Categorías ({editValues.categoryIds.length + (editValues.category ? 1 : 0)})
+                        </Button>
+                    </div>
                     <div>
                         <Label>PNF</Label>
                         <select value={editValues.pnf} onChange={(e: any) => setEditValues({ ...editValues, pnf: e.target.value })} name="pnf" className="p-2 rounded-lg border border-gray-300">
@@ -318,6 +350,20 @@ export default function ManagePhysicalBooksPage() {
                 </form>
                 {/* 🤖 Botón de IA para el formulario de Edición pasándole el contexto actual */}
                 <PhysicalBookFormChatbot mode="edit" currentBook={selectedBook} onExtract={handleAIEditExtract} />
+
+                {/* 💡 Modales de selección múltiple (editar) */}
+                <AuthorSelectorModal
+                    isOpen={authorModal.select}
+                    onClose={() => setAuthorModal({ ...authorModal, select: false })}
+                    selectedIds={editValues.authorIds}
+                    onChange={(ids) => setEditValues({ ...editValues, authorIds: ids })}
+                />
+                <CategorySelectorModal
+                    isOpen={categoryModal.select}
+                    onClose={() => setCategoryModal({ ...categoryModal, select: false })}
+                    selectedIds={editValues.categoryIds}
+                    onChange={(ids) => setEditValues({ ...editValues, categoryIds: ids })}
+                />
             </GenericModalContainer>}
 
         {/* MODAL ELIMINAR */}

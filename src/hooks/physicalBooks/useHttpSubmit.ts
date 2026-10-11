@@ -2,7 +2,7 @@ import { fetchDeleteConfig, fetchPostConfig } from "@/hooks/lib/fetch/fetchConfi
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 
-export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalPages, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, page }: any) => {
+export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalPages, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, page, createValues, editValues }: any) => {
 
     const handleCreateAuthor = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -69,8 +69,17 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
         const formData = new FormData(e.currentTarget)
         const data = Object.fromEntries(formData.entries())
 
+        // 💡 Pasamos los autores y categorías como arreglos (lógica copiada de libros digitales)
+        const payload = {
+            ...data,
+            authorIds: createValues?.authorIds || [],
+            categoryIds: createValues?.categoryIds || [],
+            authorNames: createValues?.author?.name ? [createValues.author.name] : [],
+            categoryNames: createValues?.category?.name ? [createValues.category.name] : []
+        }
+
         fetch(`/api/physical-book`, {
-            method: 'POST', body: JSON.stringify(data), headers: {
+            method: 'POST', body: JSON.stringify(payload), headers: {
                 'Content-Type': 'application/json'
             }
         })
@@ -103,8 +112,17 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
         const formData = new FormData(e.currentTarget)
         const dataXd = Object.fromEntries(formData.entries())
 
+        // 💡 Pasamos los autores y categorías como arreglos (lógica copiada de libros digitales)
+        const payload = {
+            ...dataXd,
+            authorIds: editValues?.authorIds || [],
+            categoryIds: editValues?.categoryIds || [],
+            authorNames: editValues?.author?.name ? [editValues.author.name] : [],
+            categoryNames: editValues?.category?.name ? [editValues.category.name] : []
+        }
+
         fetch(`/api/physical-book/${selectedBook.id}`, {
-            body: JSON.stringify(dataXd),
+            body: JSON.stringify(payload),
             headers: { 'Content-Type': 'application/json' },
             method: 'PATCH'
         }).then(res => res.json()).then((data: any) => {

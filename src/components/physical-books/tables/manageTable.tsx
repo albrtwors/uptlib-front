@@ -61,16 +61,28 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
                                     {book.yearOfPublication || 'N/A'}
                                 </td>
 
-                                {/* Autor */}
-                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                    <div className="font-medium text-gray-900 truncate">{book.author?.name || 'N/A'}</div>
-                                    <div className="text-xs text-gray-500">{book.authorId}</div>
+                                {/* Autores */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[200px]">
+                                    <div className="flex flex-wrap gap-1">
+                                        {(book.authors || []).map((author: any) => (
+                                            <span key={author.id} className="inline-flex px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                                {author.name}
+                                            </span>
+                                        ))}
+                                        {!book.authors?.length && <span>N/A</span>}
+                                    </div>
                                 </td>
 
-                                {/* Categoría */}
-                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                    <div className="font-medium text-gray-900 truncate">{book.category?.name || 'N/A'}</div>
-                                    <div className="text-xs text-gray-500">{book.categoryId}</div>
+                                {/* Categorías */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[200px]">
+                                    <div className="flex flex-wrap gap-1">
+                                        {(book.categories || []).map((category: any) => (
+                                            <span key={category.id} className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                                {category.name}
+                                            </span>
+                                        ))}
+                                        {!book.categories?.length && <span>N/A</span>}
+                                    </div>
                                 </td>
 
                                 {/* Editorial */}
@@ -171,12 +183,12 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
                             </div>
                             <div className="col-span-2 border-t border-gray-50 pt-2 grid grid-cols-2 gap-2">
                                 <div>
-                                    <span className="block text-xs font-medium text-gray-400 uppercase">Autor</span>
-                                    <span className="text-gray-900 text-xs font-medium truncate block mt-0.5">{book.author?.name || 'N/A'}</span>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Autores</span>
+                                    <span className="text-gray-900 text-xs font-medium block mt-0.5">{(book.authors || []).map((a: any) => a.name).join(', ') || 'N/A'}</span>
                                 </div>
                                 <div>
-                                    <span className="block text-xs font-medium text-gray-400 uppercase">Categoría</span>
-                                    <span className="text-gray-900 text-xs font-medium truncate block mt-0.5">{book.category?.name || 'N/A'}</span>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Categorías</span>
+                                    <span className="text-gray-900 text-xs font-medium block mt-0.5">{(book.categories || []).map((c: any) => c.name).join(', ') || 'N/A'}</span>
                                 </div>
                             </div>
                         </div>

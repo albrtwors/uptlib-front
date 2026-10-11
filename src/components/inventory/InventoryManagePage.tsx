@@ -19,6 +19,8 @@ import usePagination from "@/hooks/usePaginationOwn"
 import TypeFilter from "../filters/items/TypeFilter"
 import dynamic from 'next/dynamic'
 import InventoryFormChatbot from "@/components/chatbot/inventory/InventoryFormChatbot"
+import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
+import CategorySelectorModal from "../form/category/CategorySelectorModal"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
@@ -57,11 +59,15 @@ export default function InventoryManagePage({ }) {
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
     // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
-    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
-    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
+    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
+    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
+
+    // 💡 Estados de los modales de selección múltiple de autores y categorías
+    const [authorModal, setAuthorModal] = useState({ create: false, edit: false })
+    const [categoryModal, setCategoryModal] = useState({ create: false, edit: false })
 
     const { handleCreateType, handleDeleteType, handleCreateSubmit, handleDeleteSubmit, handleEditSubmit } = useHttpRequests({
-        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal
+        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal, createValues, editValues
     })
 
     // Sincronizar el formulario de edición cuando seleccionas un item de la tabla
@@ -73,7 +79,9 @@ export default function InventoryManagePage({ }) {
                 description: selectedItem.description || '',
                 stock: selectedItem.totalStock?.toString() || '0',
                 typeName: selectedItem.type?.name || '',
-                typeId: selectedItem.type?.id || '' // 💡 Extraemos el ID real correspondiente al tipo
+                typeId: selectedItem.type?.id || '', // 💡 Extraemos el ID real correspondiente al tipo
+                authorIds: (selectedItem.authors || []).map((a: any) => a.id),
+                categoryIds: (selectedItem.categories || []).map((c: any) => c.id)
             })
         }
     }, [selectedItem])
@@ -81,7 +89,7 @@ export default function InventoryManagePage({ }) {
     // Limpiar el estado de creación cada vez que se decide añadir un nuevo item
     useEffect(() => {
         if (createModal) {
-            setCreateValues({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '' })
+            setCreateValues({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
         }
     }, [createModal])
 
@@ -180,10 +188,34 @@ export default function InventoryManagePage({ }) {
                     {/* 💡 Enviamos un objeto unificado con name e id mapeado desde createValues */}
                     <ItemTypeSearcher name="typeName" defaultValue={createValues.typeName ? { name: createValues.typeName, id: createValues.typeId } : undefined}></ItemTypeSearcher>
 
+                    {/* 💡 Selección múltiple de autores y categorías (lógica copiada de libros digitales) */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, create: true })}>
+                            Autores ({createValues.authorIds.length})
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, create: true })}>
+                            Categorías ({createValues.categoryIds.length})
+                        </Button>
+                    </div>
+
                     <Button>Subir</Button>
                 </form>
 
                 <InventoryFormChatbot mode="create" onExtract={handleAICreateExtract} />
+
+                {/* 💡 Modales de selección múltiple (crear) */}
+                <AuthorSelectorModal
+                    isOpen={authorModal.create}
+                    onClose={() => setAuthorModal({ ...authorModal, create: false })}
+                    selectedIds={createValues.authorIds}
+                    onChange={(ids) => setCreateValues({ ...createValues, authorIds: ids })}
+                />
+                <CategorySelectorModal
+                    isOpen={categoryModal.create}
+                    onClose={() => setCategoryModal({ ...categoryModal, create: false })}
+                    selectedIds={createValues.categoryIds}
+                    onChange={(ids) => setCreateValues({ ...createValues, categoryIds: ids })}
+                />
             </div>
         </GenericModalContainer>}
 
@@ -215,10 +247,34 @@ export default function InventoryManagePage({ }) {
                     {/* 💡 Pasamos la estructura completa requerida para alimentar el useEffect del buscador interno */}
                     <ItemTypeSearcher name="typeName" defaultValue={editValues.typeName ? { name: editValues.typeName, id: editValues.typeId } : null}></ItemTypeSearcher>
 
+                    {/* 💡 Selección múltiple de autores y categorías al editar */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, edit: true })}>
+                            Autores ({editValues.authorIds.length})
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, edit: true })}>
+                            Categorías ({editValues.categoryIds.length})
+                        </Button>
+                    </div>
+
                     <Button>Subir</Button>
                 </form>
 
                 <InventoryFormChatbot mode="edit" currentItem={selectedItem} onExtract={handleAIEditExtract} />
+
+                {/* 💡 Modales de selección múltiple (editar) */}
+                <AuthorSelectorModal
+                    isOpen={authorModal.edit}
+                    onClose={() => setAuthorModal({ ...authorModal, edit: false })}
+                    selectedIds={editValues.authorIds}
+                    onChange={(ids) => setEditValues({ ...editValues, authorIds: ids })}
+                />
+                <CategorySelectorModal
+                    isOpen={categoryModal.edit}
+                    onClose={() => setCategoryModal({ ...categoryModal, edit: false })}
+                    selectedIds={editValues.categoryIds}
+                    onChange={(ids) => setEditValues({ ...editValues, categoryIds: ids })}
+                />
             </div>
         </GenericModalContainer>}
 
@@ -301,11 +357,26 @@ export default function InventoryManagePage({ }) {
     </div>
 }
 
-const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages }: any) => {
+const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages, createValues, editValues }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const data = new FormData(e.currentTarget)
-        fetch(`/api/inventory`, { method: 'POST', credentials: 'include', body: data }).then(res => res.json()).then(data => {
+        const payload = {
+            name: data.get('name'),
+            code: data.get('code'),
+            description: data.get('description'),
+            stock: data.get('stock'),
+            typeName: data.get('typeName'),
+            typeId: data.get('typeId'),
+            authorIds: createValues.authorIds || [],
+            categoryIds: createValues.categoryIds || []
+        }
+        fetch(`/api/inventory`, {
+            method: 'POST',
+            credentials: 'include',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json' }
+        }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
                 getItems({ search, limit, type }).then((res: any) => {
@@ -319,9 +390,19 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
     const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const data = new FormData(e.currentTarget)
+        const payload = {
+            name: data.get('name'),
+            code: data.get('code'),
+            description: data.get('description'),
+            stock: data.get('stock'),
+            typeName: data.get('typeName'),
+            typeId: data.get('typeId'),
+            authorIds: editValues.authorIds || [],
+            categoryIds: editValues.categoryIds || []
+        }
         fetch(`/api/inventory/${selectedItem.id}`, {
             method: 'PATCH',
-            body: JSON.stringify(Object.fromEntries(data.entries())),
+            body: JSON.stringify(payload),
             headers: { 'Content-Type': 'application/json' }
         }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
