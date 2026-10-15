@@ -8,7 +8,12 @@ export const useHttpSubmit = ({ setItemLoans, getItemLoans, setPage, search, get
         e.preventDefault()
         SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
-        const data = Object.fromEntries(formData.entries())
+        const data: any = Object.fromEntries(formData.entries())
+        const copyIds = formData.getAll('copyIds').map((v) => String(v)).filter(Boolean)
+        if (copyIds.length > 0) {
+            data.copyIds = copyIds
+            delete data.quantity
+        }
 
         fetch(`/api/inventory-operation/loan`, {
             method: 'POST', body: JSON.stringify(data), headers: {

@@ -1,6 +1,6 @@
 "use client"
 
-export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: any) {
+export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCopies }: any) {
     return (
         <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
@@ -114,6 +114,15 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
                                 <td className="px-4 py-4 text-center">
                                     <div className="flex items-center justify-center gap-1">
                                         <button
+                                            onClick={() => onCopies?.(book)}
+                                            className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-all"
+                                            title="Gestionar ejemplares"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10a2 2 0 002 2h10M8 7V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2M4 7a2 2 0 012-2h2" />
+                                            </svg>
+                                        </button>
+                                        <button
                                             onClick={() => onEdit(book)}
                                             className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all"
                                             title="Editar libro"
@@ -195,6 +204,15 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit }: an
 
                         {/* Botones de Acción Móviles */}
                         <div className="flex gap-2 pt-3 border-t border-gray-100">
+                            <button
+                                onClick={() => onCopies?.(book)}
+                                className="flex-1 p-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10a2 2 0 002 2h10M8 7V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2M4 7a2 2 0 012-2h2" />
+                                </svg>
+                                Ejemplares
+                            </button>
                             <button
                                 onClick={() => onEdit(book)}
                                 className="flex-1 p-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"

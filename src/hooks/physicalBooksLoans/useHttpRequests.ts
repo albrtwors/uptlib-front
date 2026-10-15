@@ -7,7 +7,12 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
 
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
-        const data = Object.fromEntries(formData.entries())
+        const data: any = Object.fromEntries(formData.entries())
+        const copyIds = formData.getAll('copyIds').map((v) => String(v)).filter(Boolean)
+        if (copyIds.length > 0) {
+            data.copyIds = copyIds
+            delete data.quantity
+        }
         SwalAlert.loading()
         fetch(`/api/physical-book-operation/loan`, {
             method: 'POST', body: JSON.stringify(data), headers: {

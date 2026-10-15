@@ -18,6 +18,9 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                                 Tipo de operación
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
+                                Ejemplar
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                                 Cantidad
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
@@ -53,6 +56,11 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                                     {operation.type === 'DEVOLUCION' && <span className="text-blue-600">{operation.type}</span>}
                                     {operation.type === 'BAJA' && <span className="text-red-600">{operation.type}</span>}
                                     {operation.type === 'ENTRADA' && <span className="text-green-600">{operation.type}</span>}
+                                </td>
+
+                                {/* Ejemplar */}
+                                <td className="px-4 py-4 text-sm font-mono text-gray-600 hidden lg:table-cell">
+                                    {operation.copy?.code || '—'}
                                 </td>
 
                                 {/* Cantidad */}

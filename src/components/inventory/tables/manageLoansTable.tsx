@@ -11,6 +11,9 @@ export default function ManageItemLoansTable({ loanOperations, onSettle, onEdit 
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Item
                             </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
+                                Ejemplar
+                            </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Persona
                             </th>
@@ -51,6 +54,11 @@ export default function ManageItemLoansTable({ loanOperations, onSettle, onEdit 
                                             {loan.item?.name || `Item ID: ${loan.itemId}`}
                                         </div>
                                         <div className="text-sm text-gray-500">ID: {loan.itemId}</div>
+                                    </td>
+
+                                    {/* Ejemplar */}
+                                    <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell font-mono">
+                                        {loan.copy?.code || '—'}
                                     </td>
 
                                     {/* Persona */}
@@ -177,6 +185,12 @@ export default function ManageItemLoansTable({ loanOperations, onSettle, onEdit 
                                     <div className="text-xl font-bold text-orange-600 mt-0.5">
                                         {loan.quantity} <span className="text-xs font-normal text-gray-500">Uds.</span>
                                     </div>
+                                </div>
+                                <div>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Ejemplar</span>
+                                    <span className="text-gray-900 font-mono block mt-1 text-xs">
+                                        {loan.copy?.code || '—'}
+                                    </span>
                                 </div>
                                 <div>
                                     <span className="block text-xs font-medium text-gray-400 uppercase">Días Transcurridos</span>

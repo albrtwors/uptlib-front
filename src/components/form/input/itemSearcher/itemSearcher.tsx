@@ -7,7 +7,7 @@ import Input from "../InputField"
 import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
 import { useItems } from "@/components/inventory/InventoryManagePage"
 
-export default function ItemSearcher({ defaultValue = null }: any) {
+export default function ItemSearcher({ defaultValue = null, onSelect }: any) {
     const [search, setSearch] = useState('')
 
     const [selectedItem, setSelectedItem] = useState<any>(null)
@@ -44,12 +44,14 @@ export default function ItemSearcher({ defaultValue = null }: any) {
     const selectItem = (author: any) => {
         setSelectedItem(author)
         setSearch('')
+        onSelect?.(author)
     }
 
     // Limpiar selección
     const clearItem = () => {
         setSelectedItem(null)
         setSearch('')
+        onSelect?.(null)
     }
 
     // Click outside

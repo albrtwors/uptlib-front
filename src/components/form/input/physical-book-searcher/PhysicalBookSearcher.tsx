@@ -6,7 +6,7 @@ import { useAuthors } from "@/hooks/authors/useAuthors"
 import Input from "../InputField"
 import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
 
-export default function PhysicalBookSearcher({ defaultValue = null }: any) {
+export default function PhysicalBookSearcher({ defaultValue = null, onSelect }: any) {
     const [search, setSearch] = useState('')
     const [selectedBook, setSelectedBook] = useState<any>(defaultValue)
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search })
@@ -41,12 +41,14 @@ export default function PhysicalBookSearcher({ defaultValue = null }: any) {
     const selectAuthor = (author: any) => {
         setSelectedBook(author)
         setSearch('')
+        onSelect?.(author)
     }
 
     // Limpiar selección
     const clearAuthor = () => {
         setSelectedBook(null)
         setSearch('')
+        onSelect?.(null)
     }
 
     // Click outside

@@ -20,6 +20,7 @@ import usePagination from "@/hooks/usePaginationOwn";
 import useItemLoans from "@/hooks/itemLoans/useItemLoans";
 import ManageItemLoansTable from "./tables/manageLoansTable";
 import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
+import CopySelector from "../copies/CopySelector";
 import ExportItemsPDFButton from "./pdf/exportButton";
 import dynamic from "next/dynamic";
 
@@ -37,6 +38,8 @@ export default function ManageItemLoansPage() {
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [selectedItem, setSelectedItem]: any = useState(null)
     const [selectedBook, setSelectedBook]: any = useState(null)
+    const [loanItemId, setLoanItemId] = useState<string | null>(null)
+    const [selectedCopyIds, setSelectedCopyIds] = useState<string[]>([])
 
     //search handling
     const pathname = usePathname();
@@ -113,13 +116,31 @@ export default function ManageItemLoansPage() {
                 <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
 
                     <div>
-                        <ItemSearcher></ItemSearcher>
+                        <ItemSearcher onSelect={(item: any) => {
+                            setLoanItemId(item?.id ?? null)
+                            setSelectedCopyIds([])
+                        }}></ItemSearcher>
                     </div>
 
 
+                    {loanItemId && (
+                        <CopySelector
+                            key={loanItemId}
+                            kind="inventory"
+                            resourceId={loanItemId}
+                            onChange={setSelectedCopyIds}
+                        />
+                    )}
+
                     <div>
                         <Label>Cantidad</Label>
-                        <Input name="quantity" placeholder="30.."></Input>
+                        <Input
+                            type="number"
+                            name="quantity"
+                            placeholder="30.."
+                            disabled={selectedCopyIds.length > 0}
+                            defaultValue={selectedCopyIds.length > 0 ? selectedCopyIds.length : undefined}
+                        ></Input>
                     </div>
 
                     <div>

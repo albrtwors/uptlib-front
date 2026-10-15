@@ -12,6 +12,7 @@ interface BookOperation {
     personSurNames: string;
     createdAt: string;
     updatedAt: string;
+    copy?: { code: string };
     book: {
         title: string;
     };
@@ -39,6 +40,9 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Persona
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
+                                Ejemplar
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                                 Cantidad
@@ -87,6 +91,11 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                         {loan.personId && (
                                             <div className="text-xs text-gray-500">ID: {loan.personId}</div>
                                         )}
+                                    </td>
+
+                                    {/* Ejemplar */}
+                                    <td className="px-4 py-4 text-sm font-mono text-gray-600 hidden md:table-cell">
+                                        {loan.copy?.code || '—'}
                                     </td>
 
                                     {/* Cantidad */}
@@ -200,6 +209,12 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                     <div className="text-xl font-bold text-orange-600 mt-0.5">
                                         {loan.quantity} <span className="text-xs font-normal text-gray-500">uds.</span>
                                     </div>
+                                </div>
+                                <div>
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">Ejemplar</span>
+                                    <span className="inline-flex px-2 py-0.5 text-xs font-mono text-gray-700 bg-gray-100 rounded mt-1">
+                                        {loan.copy?.code || '—'}
+                                    </span>
                                 </div>
                                 <div>
                                     <span className="block text-xs font-medium text-gray-400 uppercase">Fecha Préstamo</span>

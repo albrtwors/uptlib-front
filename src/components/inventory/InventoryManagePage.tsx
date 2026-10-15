@@ -21,6 +21,7 @@ import dynamic from 'next/dynamic'
 import InventoryFormChatbot from "@/components/chatbot/inventory/InventoryFormChatbot"
 import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
 import CategorySelectorModal from "../form/category/CategorySelectorModal"
+import CopiesManager from "@/components/copies/CopiesManager"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
@@ -56,6 +57,7 @@ export default function InventoryManagePage({ }) {
     const { items, setItems, getItems } = useItems({ search, limit })
     const { createModal, setCreateModal, editModal, setEditModal, deleteModal, setDeleteModal } = useManageModals()
     const [selectedItem, setSelectedItem]: any = useState(null)
+    const [copiesItem, setCopiesItem]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
     // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
@@ -299,7 +301,9 @@ export default function InventoryManagePage({ }) {
             onEdit={(item: any) => {
                 setEditModal(true)
                 setSelectedItem(item)
-            }} items={items}></ManageItemsTable>
+            }}
+            onCopies={(item: any) => setCopiesItem(item)}
+            items={items}></ManageItemsTable>
         }
 
         {typeModal.create && <GenericModalContainer>
@@ -318,6 +322,19 @@ export default function InventoryManagePage({ }) {
                 <Button>Eliminar</Button>
             </form>
         </GenericModalContainer>}
+
+        {copiesItem && <CopiesManager
+            kind="inventory"
+            resourceId={copiesItem.id}
+            title={copiesItem.name}
+            onClose={() => setCopiesItem(null)}
+            onChanged={() => {
+                getItems({ search, limit, page, type }).then((res: any) => {
+                    setItems(res.data)
+                    totalPages.current = res.totalPages
+                })
+            }}
+        />}
 
         <div>
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl shadow-sm">

@@ -18,6 +18,9 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                 Tipo de operación
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
+                                Ejemplar
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                                 Cantidad
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
@@ -55,6 +58,11 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                     {operation.type === 'DEVOLUCION' && <span className="text-blue-600">{operation.type}</span>}
                                     {operation.type === 'BAJA' && <span className="text-red-600">{operation.type}</span>}
                                     {operation.type === 'ENTRADA' && <span className="text-green-600">{operation.type}</span>}
+                                </td>
+
+                                {/* Ejemplar */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell font-mono">
+                                    {operation.copy?.code || '—'}
                                 </td>
 
                                 {/* Cantidad */}
@@ -134,6 +142,12 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                 <div className="text-lg font-bold text-gray-900 mt-0.5">
                                     {operation.quantity || '0'} <span className="text-xs font-normal text-gray-500">uds.</span>
                                 </div>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Ejemplar</span>
+                                <span className="text-gray-900 text-xs font-mono block mt-1 leading-tight">
+                                    {operation.copy?.code || '—'}
+                                </span>
                             </div>
                             <div>
                                 <span className="block text-xs font-medium text-gray-400 uppercase">Fecha y Hora</span>

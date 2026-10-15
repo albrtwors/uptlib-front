@@ -23,6 +23,7 @@ import Pagination from "../pagination/OwnPaginator"
 import CategoryFilter from "../filters/physical-books/categoryFilter"
 import dynamic from "next/dynamic"
 import PhysicalBookFormChatbot from "@/components/chatbot/physical-book/PhysicalBookFormChatbot" // 💡 Importamos el bot
+import CopiesManager from "@/components/copies/CopiesManager"
 
 const ExportPDFButton = dynamic(
     () => import('./pdf/exportPhysicalBooksButton'),
@@ -35,6 +36,7 @@ export default function ManagePhysicalBooksPage() {
     const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false, select: false })
 
     const [selectedBook, setSelectedBook]: any = useState(null)
+    const [copiesBook, setCopiesBook]: any = useState(null)
 
     const pathname = usePathname();
     const router = useRouter();
@@ -168,6 +170,7 @@ export default function ManagePhysicalBooksPage() {
                     setDeleteModal(true)
                     setSelectedBook(book)
                 }}
+                onCopies={(book: any) => setCopiesBook(book)}
                 books={books} />}
         </div>
 
@@ -413,5 +416,17 @@ export default function ManagePhysicalBooksPage() {
                 <Button className="bg-red-600 hover:bg-red-400">Eliminar</Button>
             </form>
         </GenericModalContainer>}
+
+        {copiesBook && <CopiesManager
+            kind="physical-book"
+            resourceId={copiesBook.id}
+            title={copiesBook.title}
+            onClose={() => setCopiesBook(null)}
+            onChanged={() => {
+                fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${searchInput}`)
+                    .then(res => res.json())
+                    .then((data: any) => setUseAllBooks(data.data))
+            }}
+        />}
     </section>
 }
