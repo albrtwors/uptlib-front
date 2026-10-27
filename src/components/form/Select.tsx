@@ -32,7 +32,6 @@ const Select: React.FC<SelectProps> = ({
   };
   useEffect(() => {
     setSelectedValue(defaultValue)
-    console.log('asd')
   }, [defaultValue])
 
 
@@ -45,7 +44,7 @@ const Select: React.FC<SelectProps> = ({
         } ${className}`}
       value={selectedValue}
       name={name}
-      onChange={onChange}
+      onChange={handleChange}
     >
       {/* Placeholder option */}
       <option

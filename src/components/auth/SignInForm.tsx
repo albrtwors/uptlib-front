@@ -47,9 +47,9 @@ export default function SignInForm() {
       // 1. Esperamos a que el usuario cierre la alerta de éxito
       await SwalAlert.fire({ title: 'Éxito', text: 'Has iniciado sesión correctamente', icon: 'success' });
 
-      // 2. Navegamos al dashboard y refrescamos para que el layout valide la cookie ya establecida
-      router.replace('/');
-      router.refresh();
+      // 2. Hacemos una navegación completa para que el servidor (proxy) lea la
+      // cookie recién establecida y no reutilice una respuesta cacheada de /signin.
+      window.location.replace('/');
 
     } catch (error) {
       console.error(error);
