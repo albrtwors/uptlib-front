@@ -24,7 +24,7 @@ function PublicBookDetailContent() {
                 setLoading(false)
             })
             .catch(() => {
-                router.push('/404') // Si el libro no existe, mandarlo a error
+                router.push('/error-404') // Si el libro no existe, mandarlo a error
             })
     }, [id, router])
 

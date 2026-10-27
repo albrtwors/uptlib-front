@@ -15,56 +15,63 @@ const PROTECTED_ROUTES = [
     { route: '/admin/database', roles: ['ADMIN'] }
 ]
 
+const PUBLIC_ROUTES = ['/signin', '/signup', '/welcome', '/verify-email', '/forgot-password', '/reset-password'];
+
+const isPublicRoute = (pathname: string) =>
+    PUBLIC_ROUTES.includes(pathname) ||
+    pathname === '/publicBooks' ||
+    pathname.startsWith('/publicBooks/');
+
+const getProtectedRoute = (pathname: string) =>
+    PROTECTED_ROUTES.find(
+        ({ route }) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+
+const getRoleFromToken = async (token: string): Promise<string | null> => {
+    try {
+        const res = await fetch(`${api.base_url}/users/profile`, {
+            method: 'GET',
+            headers: { Cookie: `jwt=${token}` },
+            cache: 'no-store',
+        });
+
+        if (!res.ok) return null;
+
+        const profile = await res.json().catch(() => null);
+        return typeof profile?.role === 'string' ? profile.role : null;
+    } catch {
+        return null;
+    }
+}
+
 export async function proxy(request: NextRequest) {
-    const tokenObj = request.cookies.get('jwt');
-    const token = tokenObj?.value;
+    const token = request.cookies.get('jwt')?.value;
     const pathname = request.nextUrl.pathname;
 
-    // 💡 Si la ruta es '/publicBooks' o cualquier subruta (ej: /publicBooks/2), saltamos directo al siguiente paso
-    if (pathname === '/publicBooks' || pathname.startsWith('/publicBooks/')) {
+    // Las rutas públicas no dependen del backend: así el login no se cae si
+    // /users/profile tarda o falla (por ejemplo en un cold start).
+    if (isPublicRoute(pathname)) {
         return NextResponse.next();
     }
 
-    // Ejecuta primero el control de sesión básico
-    const sessionResult = sessionProxy(request, token, pathname);
-    if (sessionResult) return sessionResult;
-
-    // Configurar las cabeceras para el fetch
-    const headers = new Headers();
-    if (token) {
-        headers.append('Cookie', `jwt=${token}`);
-    }
-
-    // Hacemos la petición pasando las cabeceras
-    const res = await fetch(`${api.base_url}/users/profile`, {
-        method: 'GET',
-        headers: headers
-    });
-    const { role } = await res.json()
-
-    const isRouteViolated = PROTECTED_ROUTES.find(
-        (route: any) => pathname === route.route && !route.roles.includes(role)
-    );
-
-    if (isRouteViolated) {
-        return NextResponse.redirect(new URL('/404', request.url));
-    }
-
-    return NextResponse.next()
-}
-
-const PUBLIC_ROUTES = ['/signin', '/signup', '/welcome', '/verify-email', '/forgot-password', '/reset-password'];
-
-const sessionProxy = (request: NextRequest, token: any, pathname: string) => {
-    // 💡 También protegemos aquí agregando la validación para que no redirija al login si entran sin token
-    const isPublicRoute =
-        PUBLIC_ROUTES.includes(pathname) ||
-        pathname === '/publicBooks' ||
-        pathname.startsWith('/publicBooks/');
-
-    if (!token && !isPublicRoute) {
+    if (!token) {
         return NextResponse.redirect(new URL('/signin', request.url));
     }
+
+    const protectedRoute = getProtectedRoute(pathname);
+
+    // Solo consultamos el perfil cuando la ruta realmente requiere un rol.
+    if (!protectedRoute) {
+        return NextResponse.next();
+    }
+
+    const role = await getRoleFromToken(token);
+
+    if (!role || !protectedRoute.roles.includes(role)) {
+        return NextResponse.redirect(new URL('/error-404', request.url));
+    }
+
+    return NextResponse.next();
 }
 
 export const config = {
