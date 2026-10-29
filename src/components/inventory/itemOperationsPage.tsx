@@ -23,6 +23,11 @@ import ManageItemOperationsTable from "./tables/manageOperationsHistoricTable";
 import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
 import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
 import ExportItemsPDFButton from "./pdf/exportButton";
+import FilterBar from "@/components/ui/FilterBar";
+import SearchField from "@/components/form/SearchField";
+import BulkActionBar from "@/components/ui/BulkActionBar";
+import useRowSelection from "@/hooks/lib/useRowSelection";
+import { useBulkActions } from "@/hooks/lib/useBulkActions";
 
 import dynamic from "next/dynamic";
 
@@ -48,33 +53,42 @@ export default function ItemOperationsPage() {
 
     //search
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
     const { page, totalPages, setPage } = usePagination()
     const [limit, setLimit] = useState(10)
-    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
-    const { operations, setOperations, getOperations } = useItemOperation({ search: searchInput, limit })
+    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: appliedSearch, limit })
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit: limit })
+    const { operations, setOperations, getOperations } = useItemOperation({ search: appliedSearch, limit })
 
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation, totalPages })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, selectedOperation, totalPages })
 
+    const reload = (targetPage = page) => getOperations({ search: appliedSearch, limit, page: targetPage }).then((res: any) => {
+        setOperations(res.data)
+        totalPages.current = res.totalPages
+    })
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
 
 
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
-        getOperations({ search: searchInput, limit, page }).then((res: any) => {
-            console.log(res)
-            setOperations(res.data)
-            totalPages.current = res.totalPages
-        })
+        reload()
 
-    }, [searchInput, limit, page]);
+    }, [appliedSearch, limit, page]);
+
+    const selection = useRowSelection(operations)
+    const { deleteSelected, busy: bulkBusy } = useBulkActions({
+        resource: 'inventory-operation',
+        selection,
+        unit: 'operación(es)',
+        onDone: () => reload(1)
+    })
 
 
 
@@ -84,36 +98,44 @@ export default function ItemOperationsPage() {
 
 
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div>
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setEntrieModal(true)}>Entrada</Button>
+                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+                <ExportPDFButton title={'Historico de Operaciones'} items={operations}></ExportPDFButton>
+            </>}
+        >
+            <div className="sm:max-w-40">
                 <Label>Cantidad Por Pagina</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
-
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
 
-            <div>
-                <Label>Buscar Por Nombre del Item</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-            </div>
-            <div className="flex gap-2 justify-center">
-                <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
-                <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
-                {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
-            </div>
-            <ExportPDFButton title={'Historico de Operaciones'} items={operations}></ExportPDFButton>
-
-        </div>
+            <SearchField
+                label="Buscar Por Nombre del Item"
+                placeholder="Buscar items..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setAppliedSearch(term)
+                }}
+            />
+        </FilterBar>
 
         <Pagination page={page} showInfo={true} setPage={setPage} limit={limit} totalItems={totalPages.current} />
 
-        <ManageItemOperationsTable operations={operations}></ManageItemOperationsTable>
+        <BulkActionBar selection={selection} unit="operación(es)" busy={bulkBusy} onDelete={deleteSelected} />
+
+        <ManageItemOperationsTable
+            selection={selection}
+            onDelete={(operation: any) => {
+                setSelectedOperation(operation)
+                setDeleteModal(true)
+            }}
+            operations={operations}></ManageItemOperationsTable>
 
 
         {createModal &&
@@ -194,9 +216,9 @@ export default function ItemOperationsPage() {
                 <div className="flex-1 flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)} className="flex flex-col gap-2">
 
-                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedOperation.book.title}?</h3>
+                    <h3 className="text-lg font-bold">Seguro de que quieres eliminar la operación de {selectedOperation.item?.name ?? selectedOperation.book?.title}?</h3>
                     <div className="flex gap-3 justify-center">
-                        <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
+                        <Button type="button" onClick={() => setDeleteModal(false)}>Cancelar</Button>
                         <Button className="bg-red-600">Eliminar</Button>
                     </div>
 

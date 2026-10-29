@@ -20,6 +20,11 @@ import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
 import usePagination from "@/hooks/usePaginationOwn";
 import Pagination from "../pagination/OwnPaginator";
 import dynamic from "next/dynamic";
+import FilterBar from "@/components/ui/FilterBar";
+import SearchField from "@/components/form/SearchField";
+import BulkActionBar from "@/components/ui/BulkActionBar";
+import useRowSelection from "@/hooks/lib/useRowSelection";
+import { useBulkActions } from "@/hooks/lib/useBulkActions";
 
 const ExportPDFButton = dynamic(
     () => import('./pdf/exportOperationsButton'),
@@ -54,22 +59,31 @@ export default function ManageOperationsPage() {
     const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, type, selectedOperation, totalPages })
 
 
+    const reload = (targetPage = page) => fetch(`/api/physical-book-operation?limit=${limit}&page=${targetPage}&type=${type}&search=${appliedSearch}`)
+        .then(res => res.json())
+        .then((data: any) => {
+            setOperations(data.data)
+            totalPages.current = data.totalPages
+        })
+
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', appliedSearch)
         params.set('type', type)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation?limit=${limit}&page=${page}&type=${type}&search=${appliedSearch}`)
-            .then(res => res.json())
-            .then((data: any) => {
-
-                setOperations(data.data)
-                totalPages.current = data.totalPages
-            })
+        reload()
     }, [appliedSearch, type, limit, page]);
+
+    const selection = useRowSelection(operations)
+    const { deleteSelected, busy: bulkBusy } = useBulkActions({
+        resource: 'physical-book-operation',
+        selection,
+        unit: 'operación(es)',
+        onDone: () => reload(1)
+    })
 
 
 
@@ -77,58 +91,47 @@ export default function ManageOperationsPage() {
         <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
 
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div>
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setEntrieModal(true)}>Entrada</Button>
+                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+                <ExportPDFButton items={operations} title={'Reporte de operaciones de Libros físicos'} ></ExportPDFButton>
+            </>}
+        >
+            <div className="sm:max-w-40">
                 <Label>Cantidad por Página</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
-
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
-            <div className="flex-1 min-w-52">
-                <Label>Buscar por Nombre del Libro</Label>
-                <div className="flex gap-2">
-                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault()
-                            setPage(1)
-                            setAppliedSearch(searchInput)
-                        }
-                    }}></Input>
-                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
-                        setPage(1)
-                        setAppliedSearch(searchInput)
-                    }}>Buscar</Button>
-                </div>
-            </div>
+            <SearchField
+                label="Buscar por Nombre del Libro"
+                placeholder="Buscar libros..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setAppliedSearch(term)
+                }}
+            />
             <div>
                 <Label>Tipo de Operación</Label>
                 <select value={type} onChange={(e: any) => {
                     setType(e.target.value)
                     setPage(1)
-                }} className="h-11 p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white/90 dark:border-gray-700">
+                }} className="h-11 w-full p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white/90 dark:border-gray-700">
                     <option value="">TODAS LAS OPERACIONES</option>
                     {OPERATIONS.map((operationType: string) => <option key={operationType} value={operationType}>{operationType}</option>)}
                 </select>
             </div>
-            <div className="flex gap-2 justify-center">
-                <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>
-                <Button className="flex-1 bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
-                {/* <Button className="flex-1" onClick={() => setCreateModal(true)}>Hacer Ajuste</Button> */}
-            </div>
-
-
-            <ExportPDFButton items={operations} title={'Reporte de operaciones de Libros físicos'} ></ExportPDFButton>
-        </div>
+        </FilterBar>
 
         <Pagination page={page} showInfo={true} setPage={setPage} limit={limit} totalItems={totalPages.current} />
 
-        <ManagePhysicalBooksTable onDelete={(operation: any) => {
+        <BulkActionBar selection={selection} unit="operación(es)" busy={bulkBusy} onDelete={deleteSelected} />
+
+        <ManagePhysicalBooksTable selection={selection} onDelete={(operation: any) => {
             setSelectedOperation(operation)
             setDeleteModal(true)
         }} onEdit={(id: any) => { console.log('yay') }} operations={operations}></ManagePhysicalBooksTable>
@@ -216,7 +219,7 @@ export default function ManageOperationsPage() {
 
                     <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedOperation.book.title}?</h3>
                     <div className="flex gap-3 justify-center">
-                        <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
+                        <Button type="button" onClick={() => setDeleteModal(false)}>Cancelar</Button>
                         <Button className="bg-red-600">Eliminar</Button>
                     </div>
 

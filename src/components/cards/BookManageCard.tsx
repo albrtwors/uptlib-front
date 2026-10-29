@@ -1,3 +1,5 @@
+import Checkbox from "../form/input/Checkbox";
+
 interface BookManageCardProps {
     id: number;
     title: string;
@@ -5,12 +7,19 @@ interface BookManageCardProps {
     pnf?: string; // 💡 Nueva propiedad
     onEdit: () => void;
     onDelete: () => void;
+    selected?: boolean;
+    onToggleSelect?: () => void;
 }
 
-export default function BookManageCard({ title, description, pnf, onEdit, onDelete }: BookManageCardProps) {
+export default function BookManageCard({ title, description, pnf, onEdit, onDelete, selected, onToggleSelect }: BookManageCardProps) {
     return (
         <div className="flex flex-col justify-between p-4 rounded-xl border bg-white shadow-xs dark:bg-gray-900 dark:border-gray-800 h-full">
             <div className="flex flex-col gap-1.5">
+                {onToggleSelect && (
+                    <div className="self-start">
+                        <Checkbox checked={!!selected} onChange={onToggleSelect} />
+                    </div>
+                )}
                 {/* Badge del PNF Estilizado */}
                 {pnf && (
                     <span className="self-start px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">

@@ -1,13 +1,21 @@
 "use client"
 
-export default function ManageItemOperationsTable({ operations, onDelete, onEdit }: any) {
+import Checkbox from "@/components/form/input/Checkbox"
+import type { RowSelection } from "@/hooks/lib/useRowSelection"
+
+export default function ManageItemOperationsTable({ operations, onDelete, onEdit, selection }: any) {
     return (
-        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
             <div className="hidden md:block overflow-x-auto">
                 <table className="w-full table-auto min-w-[850px]">
                     <thead>
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                            {selection && (
+                                <th className="px-3 py-3 w-10">
+                                    <Checkbox checked={selection.allSelected} onChange={selection.toggleAll} />
+                                </th>
+                            )}
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Item
                             </th>
@@ -37,6 +45,11 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                 key={operation.id}
                                 className="hover:bg-gray-50 transition-colors group"
                             >
+                                {selection && (
+                                    <td className="px-3 py-4 w-10">
+                                        <Checkbox checked={selection.isSelected(operation.id)} onChange={() => selection.toggle(operation.id)} />
+                                    </td>
+                                )}
                                 {/* Item */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
                                     <div className="font-semibold text-gray-900 truncate mb-1">{operation.item?.name}</div>
@@ -78,24 +91,30 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                 {/* Acciones Tabla */}
                                 <td className="px-4 py-4 text-center">
                                     <div className="flex items-center justify-center gap-1">
-                                        <button
-                                            onClick={() => onEdit(operation)}
-                                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all"
-                                            title="Editar operación"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            onClick={() => onDelete(operation)}
-                                            className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all"
-                                            title="Eliminar operación"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                        {onEdit && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onEdit(operation)}
+                                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Editar operación"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                        {onDelete && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDelete(operation)}
+                                                className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Eliminar operación"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -110,6 +129,11 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                     <div key={operation.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                         {/* Encabezado: Nombre del Item y Etiqueta del tipo de operación */}
                         <div className="flex justify-between items-start mb-3">
+                            {selection && (
+                                <div className="pt-1 pr-2">
+                                    <Checkbox checked={selection.isSelected(operation.id)} onChange={() => selection.toggle(operation.id)} />
+                                </div>
+                            )}
                             <div className="flex-1 pr-2">
                                 <h3 className="font-bold text-base text-gray-900 line-clamp-2">
                                     {operation.item?.name}
@@ -158,8 +182,9 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                         </div>
 
                         {/* Botones de Acción Móviles */}
-                        <div className="flex gap-2 pt-3 border-t border-gray-100">
-                            <button
+                        {(onEdit || onDelete) && <div className="flex gap-2 pt-3 border-t border-gray-100">
+                            {onEdit && <button
+                                type="button"
                                 onClick={() => onEdit(operation)}
                                 className="flex-1 p-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                             >
@@ -167,8 +192,9 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                                 Editar
-                            </button>
-                            <button
+                            </button>}
+                            {onDelete && <button
+                                type="button"
                                 onClick={() => onDelete(operation)}
                                 className="flex-1 p-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                             >
@@ -176,8 +202,8 @@ export default function ManageItemOperationsTable({ operations, onDelete, onEdit
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 Eliminar
-                            </button>
-                        </div>
+                            </button>}
+                        </div>}
 
                         <div className="text-[10px] text-gray-400 mt-2 text-center font-mono">
                             OP ID: {operation.id}

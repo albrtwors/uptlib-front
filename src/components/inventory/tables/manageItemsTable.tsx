@@ -1,13 +1,21 @@
 "use client"
 
-export default function ManageItemsTable({ items, onDelete, onEdit, onCopies }: any) {
+import Checkbox from "@/components/form/input/Checkbox"
+import type { RowSelection } from "@/hooks/lib/useRowSelection"
+
+export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, selection }: { items: any[], onDelete: any, onEdit: any, onCopies?: any, selection?: RowSelection }) {
     return (
-        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (md:block) */}
             <div className="hidden md:block overflow-x-auto">
                 <table className="w-full table-auto min-w-[850px]">
                     <thead>
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                            {selection && (
+                                <th className="px-3 py-3 w-10">
+                                    <Checkbox checked={selection.allSelected} onChange={selection.toggleAll} />
+                                </th>
+                            )}
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Nombre
                             </th>
@@ -40,6 +48,11 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies }: 
                                 key={item.id}
                                 className="hover:bg-gray-50 transition-colors group"
                             >
+                                {selection && (
+                                    <td className="px-3 py-4 w-10">
+                                        <Checkbox checked={selection.isSelected(item.id)} onChange={() => selection.toggle(item.id)} />
+                                    </td>
+                                )}
                                 {/* Título / Nombre */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
                                     <div className="font-semibold text-gray-900 truncate mb-1">{item.name}</div>
@@ -142,6 +155,11 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies }: 
                     <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                         {/* Encabezado de la Card: Nombre y Estado */}
                         <div className="flex justify-between items-start mb-2">
+                            {selection && (
+                                <div className="pt-1 pr-2">
+                                    <Checkbox checked={selection.isSelected(item.id)} onChange={() => selection.toggle(item.id)} />
+                                </div>
+                            )}
                             <div className="flex-1 pr-2">
                                 <h3 className="font-bold text-base text-gray-900 truncate">
                                     {item.name}

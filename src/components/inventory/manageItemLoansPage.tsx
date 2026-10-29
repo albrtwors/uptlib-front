@@ -22,6 +22,8 @@ import ManageItemLoansTable from "./tables/manageLoansTable";
 import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
 import CopySelector from "../copies/CopySelector";
 import ExportItemsPDFButton from "./pdf/exportButton";
+import FilterBar from "@/components/ui/FilterBar";
+import SearchField from "@/components/form/SearchField";
 import dynamic from "next/dynamic";
 
 
@@ -47,23 +49,24 @@ export default function ManageItemLoansPage() {
 
     //search
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
     const [limit, setLimit] = useState(10)
-    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
+    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: appliedSearch, limit })
     const { page, setPage, totalPages } = usePagination()
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
-    const { itemLoans, setItemLoans, getItemLoans } = useItemLoans({ search: searchInput, limit, page })
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit: limit })
+    const { itemLoans, setItemLoans, getItemLoans } = useItemLoans({ search: appliedSearch, limit, page })
     //handlehttp
-    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ setItemLoans, getItemLoans, page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, setPage })
+    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ setItemLoans, getItemLoans, page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, setPage })
 
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
-        fetch(`/api/inventory-operation/loan?limit=${limit}&search=${searchInput}&page=${page}`)
+        fetch(`/api/inventory-operation/loan?limit=${limit}&search=${appliedSearch}&page=${page}`)
             .then(res => res.json())
             .then((data: any) => {
 
@@ -71,7 +74,7 @@ export default function ManageItemLoansPage() {
                 totalPages.current = data.totalPages
                 console.log(totalPages)
             })
-    }, [searchInput, limit, page]);
+    }, [appliedSearch, limit, page]);
 
 
 
@@ -80,28 +83,31 @@ export default function ManageItemLoansPage() {
 
 
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-
-            <div>
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+                <ExportPDFButton items={itemLoans} title="Reporte de Prestamos"></ExportPDFButton>
+            </>}
+        >
+            <div className="sm:max-w-40">
                 <Label>Cantidad por Pagina</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
-
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
 
-            <div>
-                <Label>Buscar por Nombre del Item</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
-            </div>
-            <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
-            <ExportPDFButton items={itemLoans} title="Reporte de Prestamos"></ExportPDFButton>
-        </div>
+            <SearchField
+                label="Buscar por Nombre del Item"
+                placeholder="Buscar items..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setAppliedSearch(term)
+                }}
+            />
+        </FilterBar>
 
 
 

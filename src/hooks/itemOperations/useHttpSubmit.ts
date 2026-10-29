@@ -100,7 +100,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
             const result = handleResponses(data)
             console.log(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => setOperations(res))
+                getOperations({ search, limit }).then((res: any) => setOperations(res.data))
                 setEditModal(false)
             }
         })
@@ -110,11 +110,10 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         SwalAlert.loading()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
-        fetch(`/api/physical-book-operation/${selectedOperation.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
+        fetch(`/api/inventory-operation/${selectedOperation.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => setOperations(res))
+                getOperations({ search, limit }).then((res: any) => setOperations(res.data))
                 setDeleteModal(false)
             }
         })

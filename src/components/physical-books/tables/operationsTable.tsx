@@ -1,13 +1,21 @@
 "use client"
 
-export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit }: any) {
+import Checkbox from "@/components/form/input/Checkbox"
+import type { RowSelection } from "@/hooks/lib/useRowSelection"
+
+export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit, selection }: { operations: any[], onDelete: any, onEdit: any, selection?: RowSelection }) {
     return (
-        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
             <div className="hidden md:block overflow-x-auto">
                 <table className="w-full table-auto min-w-[850px]">
                     <thead>
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                            {selection && (
+                                <th className="px-3 py-3 w-10">
+                                    <Checkbox checked={selection.allSelected} onChange={selection.toggleAll} />
+                                </th>
+                            )}
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Título del Libro
                             </th>
@@ -37,6 +45,11 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                                 key={operation.id}
                                 className="hover:bg-gray-50 transition-colors group"
                             >
+                                {selection && (
+                                    <td className="px-3 py-4 w-10">
+                                        <Checkbox checked={selection.isSelected(operation.id)} onChange={() => selection.toggle(operation.id)} />
+                                    </td>
+                                )}
                                 {/* Título */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
                                     <div className="font-semibold text-gray-900 truncate mb-1">{operation.book?.title}</div>
@@ -108,6 +121,11 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                     <div key={operation.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
                         {/* Encabezado: Título del Libro y Tipo de Operación */}
                         <div className="flex justify-between items-start mb-3">
+                            {selection && (
+                                <div className="pt-1 pr-2">
+                                    <Checkbox checked={selection.isSelected(operation.id)} onChange={() => selection.toggle(operation.id)} />
+                                </div>
+                            )}
                             <div className="flex-1 pr-2">
                                 <h3 className="font-bold text-base text-gray-900 line-clamp-2">
                                     {operation.book?.title}

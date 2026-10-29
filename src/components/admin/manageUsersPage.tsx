@@ -14,6 +14,8 @@ import { fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 import GenericModalContainer from "../modals/GenericModalContainer"
 import Select from "../form/Select"
+import FilterBar from "@/components/ui/FilterBar"
+import SearchField from "@/components/form/SearchField"
 
 const ROLE_OPTIONS = [
     { value: 'USER', label: 'Usuario' },
@@ -26,6 +28,7 @@ export default function ManageUsersPage() {
     const pathname = usePathname()
 
     const [role, setRole] = useState('USER')
+    const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')
     const [limit, setLimit] = useState(10)
     const { page, setPage, totalPages } = usePagination()
@@ -92,7 +95,7 @@ export default function ManageUsersPage() {
         params.set('search', search)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
         fetch(`/api/users?limit=${limit}&search=${search}&page=${page}`)
             .then(res => res.json())
@@ -111,28 +114,26 @@ export default function ManageUsersPage() {
                 + Agregar Usuario
             </Button>
         </div>
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-
-            <div>
+        <FilterBar>
+            <div className="sm:max-w-40">
                 <Label>Cantidad por Pagina</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
-
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
 
-            <div>
-                <Label>Buscar por Nombre del Item</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}></Input>
-            </div>
-
-
-        </div>
+            <SearchField
+                label="Buscar por nombre o correo"
+                placeholder="Buscar usuarios..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setSearch(term)
+                }}
+            />
+        </FilterBar>
 
 
 

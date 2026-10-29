@@ -3,28 +3,28 @@ import Button from "@/components/ui/button/Button"
 import { useEffect, useState } from "react"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
-import BookManageCard from "../cards/BookManageCard"
 import GenericModalContainer from "../modals/GenericModalContainer"
-import { handleResponses } from "@/hooks/lib/responses/handleResponses"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import { useManageModals } from "@/hooks/useModal"
 import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
 import { useHttpSubmit } from "@/hooks/physicalBooks/useHttpSubmit"
 import AuthorSearcher from "../form/input/authors/AuthorSearcher"
 import CategorySearcher from "../form/input/category/categorySearcher"
-import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
-import CategorySelectorModal from "../form/category/CategorySelectorModal"
-import PnfSelectorModal from "../form/pnf/PnfSelectorModal"
 import { usePnfs } from "@/hooks/pnfs/usePnfs"
-import Select from "../form/Select"
 import ManagePhysicalBooksTable from "./tables/manageTable"
 import usePagination from "@/hooks/usePaginationOwn"
 import Pagination from "../pagination/OwnPaginator"
 import CategoryFilter from "../filters/physical-books/categoryFilter"
 import dynamic from "next/dynamic"
-import PhysicalBookFormChatbot from "@/components/chatbot/physical-book/PhysicalBookFormChatbot" // 💡 Importamos el bot
 import CopiesManager from "@/components/copies/CopiesManager"
+import FilterBar from "@/components/ui/FilterBar"
+import SearchField from "@/components/form/SearchField"
+import BulkActionBar from "@/components/ui/BulkActionBar"
+import useRowSelection from "@/hooks/lib/useRowSelection"
+import { useBulkActions } from "@/hooks/lib/useBulkActions"
+import { physicalBookToRecord } from "@/utils/jsonRecords"
+import RecordsWorkspaceModal from "./records/RecordsWorkspaceModal"
 
 const ExportPDFButton = dynamic(
     () => import('./pdf/exportPhysicalBooksButton'),
@@ -32,13 +32,13 @@ const ExportPDFButton = dynamic(
 )
 
 export default function ManagePhysicalBooksPage() {
-    const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
-    const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false, select: false })
-    const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false, select: false })
-    const [pnfModal, setPnfModal] = useState(false)
+    const { setCreateModal, setDeleteModal, createModal, deleteModal } = useManageModals()
+    const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false })
+    const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false })
 
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [copiesBook, setCopiesBook]: any = useState(null)
+    const [workspace, setWorkspace]: any = useState(null)
 
     const pathname = usePathname();
     const router = useRouter();
@@ -51,40 +51,26 @@ export default function ManagePhysicalBooksPage() {
     const { page, setPage, totalPages } = usePagination()
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit, page, totalPages })
 
-    // 💡 ESTADOS PARA PODER INTERCEPTAR EL COMPORTAMIENTO DE LA IA Y CONTROLAR LOS INPUTS
-    const [createValues, setCreateValues] = useState({ title: '', isbn: '', code: '', pnfs: [] as string[], yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[] })
-    const [editValues, setEditValues] = useState({ title: '', isbn: '', code: '', pnfs: [] as string[], yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[], })
-
     const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
 
-    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, page, createValues, editValues })
+    const { handleDeleteGenre, handleCreateAuthor, handleDeleteAuthor, handleCreateGenre, handleDeleteSubmit } = useHttpSubmit({
+        setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, search: appliedSearch, page
+    })
 
-    // Limpiar estados al abrir el modal de creación
-    useEffect(() => {
-        if (createModal) {
-            setSelectedBook(null)
-            setCreateValues({ title: '', isbn: '', code: '', pnfs: [], yearOfPublication: '', editorial: '', totalStock: '', author: null, category: null, authorIds: [], categoryIds: [] })
-        }
-    }, [createModal])
+    const reload = (targetPage = page) => getBooks({ search: appliedSearch, limit, page: targetPage, category, pnf }).then((res: any) => {
+        setUseAllBooks(res.data)
+        totalPages.current = res.totalPages
+    })
 
-    // Sincronizar el estado de edición cuando se selecciona un libro de la tabla
-    useEffect(() => {
-        if (selectedBook && editModal) {
-            setEditValues({
-                title: selectedBook.title || '',
-                isbn: selectedBook.isbn || '',
-                code: selectedBook.code || '',
-                pnfs: (selectedBook.pnfs || []).map((p: any) => p.name).filter(Boolean),
-                yearOfPublication: selectedBook.yearOfPublication?.toString() || '',
-                editorial: selectedBook.editorial || '',
-                totalStock: selectedBook.availableStock?.toString() || '0',
-                author: null,
-                category: null,
-                authorIds: (selectedBook.authors || []).map((a: any) => a.id),
-                categoryIds: (selectedBook.categories || []).map((c: any) => c.id)
-            })
-        }
-    }, [selectedBook, editModal])
+    const selection = useRowSelection(books)
+    const { deleteSelected, exportSelected, busy: bulkBusy } = useBulkActions({
+        resource: 'physical-book',
+        selection,
+        unit: 'libro(s) físico(s)',
+        toRecord: physicalBookToRecord,
+        fileBaseName: 'libros-fisicos',
+        onDone: () => reload(1)
+    })
 
     useEffect(() => {
         const params = new URLSearchParams()
@@ -93,76 +79,35 @@ export default function ManagePhysicalBooksPage() {
         params.set('page', page.toString())
         params.set('genre', category.toString())
         params.set('pnf', pnf.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${appliedSearch}`)
-            .then(res => res.json())
-            .then((data: any) => {
-                setUseAllBooks(data.data)
-                totalPages.current = data.totalPages
-            })
+        reload()
     }, [appliedSearch, limit, page, category, pnf]);
-
-    // 💡 HANDLERS PARA INYECTAR LAS EXTRACCIONES DEL ASISTENTE EN LOS CAMPOS
-    const handleAICreateExtract = (data: any) => {
-        setCreateValues(prev => ({
-            ...prev,
-            title: data.title ?? prev.title,
-            isbn: data.isbn ?? prev.isbn,
-            code: data.code ?? prev.code,
-            pnfs: data.pnfs && data.pnfs.length > 0 ? data.pnfs : (data.pnf ? [data.pnf] : prev.pnfs),
-            yearOfPublication: data.yearOfPublication ?? prev.yearOfPublication,
-            editorial: data.editorial ?? prev.editorial,
-            totalStock: data.totalStock ?? prev.totalStock,
-            author: data.authorName ? { name: data.authorName } : prev.author,
-            category: data.categoryName ? { name: data.categoryName } : prev.category
-        }))
-    }
-
-    const handleAIEditExtract = (data: any) => {
-        setEditValues(prev => ({
-            ...prev,
-            title: data.title ?? prev.title,
-            isbn: data.isbn ?? prev.isbn,
-            code: data.code ?? prev.code,
-            pnfs: data.pnfs && data.pnfs.length > 0 ? data.pnfs : (data.pnf ? [data.pnf] : prev.pnfs),
-            yearOfPublication: data.yearOfPublication ?? prev.yearOfPublication,
-            editorial: data.editorial ?? prev.editorial,
-            totalStock: data.totalStock ?? prev.totalStock,
-            author: data.authorName ? { name: data.authorName } : prev.author,
-            category: data.categoryName ? { name: data.categoryName } : prev.category
-        }))
-    }
 
     return <section className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">Gestionar Libros Físicos</h1>
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div className="flex-1 min-w-52">
-                <Label>Titulo del Libro</Label>
-                <div className="flex gap-2">
-                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault()
-                            setPage(1)
-                            setAppliedSearch(searchInput)
-                        }
-                    }}></Input>
-                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
-                        setPage(1)
-                        setAppliedSearch(searchInput)
-                    }}>Buscar</Button>
-                </div>
-            </div>
-            <div>
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setCreateModal(true)}>Añadir libros</Button>
+                <ExportPDFButton items={books} title={'Reporte de Libros Fisicos'}></ExportPDFButton>
+            </>}
+        >
+            <SearchField
+                label="Titulo del Libro"
+                placeholder="Buscar libros..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setAppliedSearch(term)
+                }}
+            />
+            <div className="sm:max-w-32">
                 <Label>Cantidad</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
             <CategoryFilter setSearchHandler={setCategory}></CategoryFilter>
@@ -172,23 +117,28 @@ export default function ManagePhysicalBooksPage() {
                 <select value={pnf} onChange={(e: any) => {
                     setPnf(e.target.value)
                     setPage(1)
-                }} className="h-11 p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white dark:border-gray-700">
+                }} className="h-11 w-full p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white dark:border-gray-700">
                     <option value="">TODOS LOS PNF</option>
                     {(Array.isArray(pnfOptions) ? pnfOptions : []).map((pnfEntity: any) => <option key={pnfEntity.id} value={pnfEntity.name}>{pnfEntity.name}</option>)}
                 </select>
             </div>
-            <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
-            <ExportPDFButton items={books} title={'Reporte de Libros Fisicos'}></ExportPDFButton>
-        </div>
+        </FilterBar>
 
         <Pagination page={page} setPage={setPage} totalItems={totalPages.current} limit={limit}></Pagination>
 
+        <BulkActionBar
+            selection={selection}
+            unit="libro(s)"
+            busy={bulkBusy}
+            onDelete={deleteSelected}
+            onExport={exportSelected}
+            onEdit={() => setWorkspace({ mode: 'edit', seeds: selection.selectedRows })}
+        />
+
         <div className="p-3">
             {books && <ManagePhysicalBooksTable
-                onEdit={(book: any) => {
-                    setSelectedBook(book)
-                    setEditModal(true)
-                }}
+                selection={selection}
+                onEdit={(book: any) => setWorkspace({ mode: 'edit', seeds: [book] })}
                 onDelete={(book: any) => {
                     setDeleteModal(true)
                     setSelectedBook(book)
@@ -212,7 +162,7 @@ export default function ManagePhysicalBooksPage() {
                 </div>
 
                 <div className="flex gap-2 ml-auto">
-                    <Button size="sm" onClick={() => setAuthorModal({ ...authorModal, create: true })}>
+                    <Button size="sm" type="button" onClick={() => setAuthorModal({ ...authorModal, create: true })}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -221,6 +171,7 @@ export default function ManagePhysicalBooksPage() {
 
                     <Button
                         size="sm"
+                        type="button"
                         variant="outline"
                         className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 hover:text-red-800 shadow-sm px-6 py-2.5"
                         onClick={() => setAuthorModal({ ...authorModal, delete: true })}
@@ -249,7 +200,7 @@ export default function ManagePhysicalBooksPage() {
                 </div>
 
                 <div className="flex gap-2 ml-auto">
-                    <Button size="sm" onClick={() => setCategoryModal({ ...categoryModal, create: true })}>
+                    <Button size="sm" type="button" onClick={() => setCategoryModal({ ...categoryModal, create: true })}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -258,6 +209,7 @@ export default function ManagePhysicalBooksPage() {
 
                     <Button
                         size="sm"
+                        type="button"
                         variant="outline"
                         className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 hover:text-red-800 shadow-sm px-6 py-2.5"
                         onClick={() => setCategoryModal({ ...categoryModal, delete: true })}
@@ -271,165 +223,26 @@ export default function ManagePhysicalBooksPage() {
             </div>
         </div>
 
-        {/* MODAL CREAR */}
-        {createModal &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
-                <form onSubmit={handleCreateSubmit} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Título del libro</Label>
-                        <Input defaultValue={createValues.title} onChange={(e: any) => setCreateValues({ ...createValues, title: e.target.value })} name="title" type="text" placeholder="Mago de Oz"></Input>
-                    </div>
-                    <div>
-                        <Label>ISBN</Label>
-                        <Input defaultValue={createValues.isbn} onChange={(e: any) => setCreateValues({ ...createValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
-                    </div>
-                    <div>
-                        <Label>Código de la Biblioteca</Label>
-                        <Input defaultValue={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} name="code" placeholder="Ej: LIB-INF-001"></Input>
-                    </div>
-                    {/* 💡 Selección múltiple de autores y categorías (lógica copiada de libros digitales) */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
-                            Autores ({createValues.authorIds.length + (createValues.author ? 1 : 0)})
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, select: true })}>
-                            Categorías ({createValues.categoryIds.length + (createValues.category ? 1 : 0)})
-                        </Button>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label>PNFs Vinculados ({createValues.pnfs.length})</Label>
-                        <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
-                            {createValues.pnfs.map((p: string) => (
-                                <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
-                            ))}
-                        </div>
-                        <Button type="button" variant="outline" onClick={() => setPnfModal(true)}>
-                            Asignar Áreas PNF
-                        </Button>
-                    </div>
-                    <div>
-                        <Label>Año</Label>
-                        <Input defaultValue={createValues.yearOfPublication} onChange={(e: any) => setCreateValues({ ...createValues, yearOfPublication: e.target.value })} name="yearOfPublication" type="number"></Input>
-                    </div>
-                    <div>
-                        <Label>Editorial</Label>
-                        <Input defaultValue={createValues.editorial} onChange={(e: any) => setCreateValues({ ...createValues, editorial: e.target.value })} name="editorial" type="text"></Input>
-                    </div>
-                    <div>
-                        <Label>Stock</Label>
-                        <Input defaultValue={createValues.totalStock} onChange={(e: any) => setCreateValues({ ...createValues, totalStock: e.target.value })} name="totalStock" type="number"></Input>
-                    </div>
-                    <Button>Guardar</Button>
-                </form>
-                {/* 🤖 Botón de IA para el formulario de Creación */}
-                <PhysicalBookFormChatbot mode="create" onExtract={handleAICreateExtract} />
-
-                {/* 💡 Modales de selección múltiple (crear) */}
-                <AuthorSelectorModal
-                    isOpen={authorModal.select}
-                    onClose={() => setAuthorModal({ ...authorModal, select: false })}
-                    selectedIds={createValues.authorIds}
-                    onChange={(ids) => setCreateValues({ ...createValues, authorIds: ids })}
-                />
-                <CategorySelectorModal
-                    isOpen={categoryModal.select}
-                    onClose={() => setCategoryModal({ ...categoryModal, select: false })}
-                    selectedIds={createValues.categoryIds}
-                    onChange={(ids) => setCreateValues({ ...createValues, categoryIds: ids })}
-                />
-                <PnfSelectorModal
-                    isOpen={pnfModal}
-                    onClose={() => setPnfModal(false)}
-                    selectedPnfs={createValues.pnfs}
-                    onChange={(pnfsSelected) => setCreateValues({ ...createValues, pnfs: pnfsSelected })}
-                />
-            </GenericModalContainer>
-        }
-
-        {/* MODAL EDITAR */}
-        {(editModal && selectedBook) &&
-            <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
-                <form onSubmit={handleEditSubmit} className="flex flex-col gap-2">
-                    <div>
-                        <Label>Título del libro</Label>
-                        <Input defaultValue={editValues.title} onChange={(e: any) => setEditValues({ ...editValues, title: e.target.value })} name="title" type="text" placeholder="Mago de Oz"></Input>
-                    </div>
-                    <div>
-                        <Label>ISBN</Label>
-                        <Input defaultValue={editValues.isbn} onChange={(e: any) => setEditValues({ ...editValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
-                    </div>
-                    <div>
-                        <Label>Código de la Biblioteca</Label>
-                        <Input defaultValue={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name="code" placeholder="Ej: LIB-INF-001"></Input>
-                    </div>
-                    {/* 💡 Selección múltiple de autores y categorías al editar */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
-                            Autores ({editValues.authorIds.length + (editValues.author ? 1 : 0)})
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, select: true })}>
-                            Categorías ({editValues.categoryIds.length + (editValues.category ? 1 : 0)})
-                        </Button>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label>PNFs Vinculados ({editValues.pnfs.length})</Label>
-                        <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
-                            {editValues.pnfs.map((p: string) => (
-                                <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
-                            ))}
-                        </div>
-                        <Button type="button" variant="outline" onClick={() => setPnfModal(true)}>
-                            Asignar Áreas PNF
-                        </Button>
-                    </div>
-                    <div>
-                        <Label>Año</Label>
-                        <Input defaultValue={editValues.yearOfPublication} onChange={(e: any) => setEditValues({ ...editValues, yearOfPublication: e.target.value })} name="yearOfPublication" type="number"></Input>
-                    </div>
-                    <div>
-                        <Label>Editorial</Label>
-                        <Input defaultValue={editValues.editorial} onChange={(e: any) => setEditValues({ ...editValues, editorial: e.target.value })} name="editorial" type="text"></Input>
-                    </div>
-                    <div>
-                        <Label>Stock</Label>
-                        <Input defaultValue={editValues.totalStock} onChange={(e: any) => setEditValues({ ...editValues, totalStock: e.target.value })} name="totalStock" type="number"></Input>
-                    </div>
-                    <Button>Guardar</Button>
-                </form>
-                {/* 🤖 Botón de IA para el formulario de Edición pasándole el contexto actual */}
-                <PhysicalBookFormChatbot mode="edit" currentBook={selectedBook} onExtract={handleAIEditExtract} />
-
-                {/* 💡 Modales de selección múltiple (editar) */}
-                <AuthorSelectorModal
-                    isOpen={authorModal.select}
-                    onClose={() => setAuthorModal({ ...authorModal, select: false })}
-                    selectedIds={editValues.authorIds}
-                    onChange={(ids) => setEditValues({ ...editValues, authorIds: ids })}
-                />
-                <CategorySelectorModal
-                    isOpen={categoryModal.select}
-                    onClose={() => setCategoryModal({ ...categoryModal, select: false })}
-                    selectedIds={editValues.categoryIds}
-                    onChange={(ids) => setEditValues({ ...editValues, categoryIds: ids })}
-                />
-                <PnfSelectorModal
-                    isOpen={pnfModal}
-                    onClose={() => setPnfModal(false)}
-                    selectedPnfs={editValues.pnfs}
-                    onChange={(pnfsSelected) => setEditValues({ ...editValues, pnfs: pnfsSelected })}
-                />
-            </GenericModalContainer>}
+        {/* MESA DE TRABAJO: crear, editar en lote e importar/exportar JSON */}
+        {(workspace || createModal) &&
+            <RecordsWorkspaceModal
+                mode={workspace?.mode ?? 'create'}
+                seeds={workspace?.seeds ?? []}
+                onClose={() => {
+                    setWorkspace(null)
+                    setCreateModal(false)
+                }}
+                onSaved={() => reload()}
+            />}
 
         {/* MODAL ELIMINAR */}
         {(deleteModal && selectedBook) &&
             <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
+                <div className="flex-1 flex justify-end"><Button type="button" onClick={() => setDeleteModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteSubmit(e)} className="flex flex-col gap-2">
                     <h3 className="text-lg font-bold">Seguro de que quieres eliminar {selectedBook.title}?</h3>
                     <div className="flex gap-3 justify-center">
-                        <Button onClick={() => setDeleteModal(false)}>Cancelar</Button>
+                        <Button type="button" onClick={() => setDeleteModal(false)}>Cancelar</Button>
                         <Button className="bg-red-600">Eliminar</Button>
                     </div>
                 </form>
@@ -437,7 +250,7 @@ export default function ManagePhysicalBooksPage() {
 
         {/* DELEGACIÓN DE MODALS INTERNOS */}
         {authorModal.create && <GenericModalContainer>
-            <div className="flex-1 flex justify-end"><Button onClick={() => setAuthorModal({ ...authorModal, create: false })}>X</Button></div>
+            <div className="flex-1 flex justify-end"><Button type="button" onClick={() => setAuthorModal({ ...authorModal, create: false })}>X</Button></div>
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateAuthor(e)} className="flex flex-col gap-2">
                 <Label>Nombre del Autor</Label>
                 <Input name="name"></Input>
@@ -446,7 +259,7 @@ export default function ManagePhysicalBooksPage() {
         </GenericModalContainer>}
 
         {authorModal.delete && <GenericModalContainer>
-            <div className="flex-1 flex justify-end"><Button onClick={() => setAuthorModal({ ...authorModal, delete: false })}>X</Button></div>
+            <div className="flex-1 flex justify-end"><Button type="button" onClick={() => setAuthorModal({ ...authorModal, delete: false })}>X</Button></div>
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteAuthor(e)} className="flex flex-col gap-2">
                 <AuthorSearcher></AuthorSearcher>
                 <Button className="bg-red-600 hover:bg-red-400">Eliminar</Button>
@@ -454,7 +267,7 @@ export default function ManagePhysicalBooksPage() {
         </GenericModalContainer>}
 
         {categoryModal.create && <GenericModalContainer>
-            <div className="flex-1 flex justify-end"><Button onClick={() => setCategoryModal({ ...categoryModal, create: false })}>X</Button></div>
+            <div className="flex-1 flex justify-end"><Button type="button" onClick={() => setCategoryModal({ ...categoryModal, create: false })}>X</Button></div>
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateGenre(e)} className="flex flex-col gap-2">
                 <Label>Nombre del Genero</Label>
                 <Input name="name"></Input>
@@ -463,7 +276,7 @@ export default function ManagePhysicalBooksPage() {
         </GenericModalContainer>}
 
         {categoryModal.delete && <GenericModalContainer>
-            <div className="flex-1 flex justify-end"><Button onClick={() => setCategoryModal({ ...categoryModal, delete: false })}>X</Button></div>
+            <div className="flex-1 flex justify-end"><Button type="button" onClick={() => setCategoryModal({ ...categoryModal, delete: false })}>X</Button></div>
             <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDeleteGenre(e)} className="flex flex-col gap-2">
                 <CategorySearcher></CategorySearcher>
                 <Button className="bg-red-600 hover:bg-red-400">Eliminar</Button>
@@ -475,11 +288,7 @@ export default function ManagePhysicalBooksPage() {
             resourceId={copiesBook.id}
             title={copiesBook.title}
             onClose={() => setCopiesBook(null)}
-            onChanged={() => {
-                fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${appliedSearch}`)
-                    .then(res => res.json())
-                    .then((data: any) => setUseAllBooks(data.data))
-            }}
+            onChanged={() => reload()}
         />}
     </section>
 }

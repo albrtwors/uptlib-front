@@ -18,6 +18,8 @@ import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBook
 import Pagination from "../pagination/OwnPaginator";
 import usePagination from "@/hooks/usePaginationOwn";
 import CopySelector from "../copies/CopySelector";
+import FilterBar from "@/components/ui/FilterBar";
+import SearchField from "@/components/form/SearchField";
 import dynamic from "next/dynamic";
 
 
@@ -54,7 +56,7 @@ export default function ManageLoansPage() {
         params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
         fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${appliedSearch}&page=${page}`)
             .then(res => res.json())
@@ -72,41 +74,30 @@ export default function ManageLoansPage() {
         <h1 className="text-3xl font-bold dark:text-white">Gestionar Préstamos</h1>
 
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-
-            <div>
-
-
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+                <ExportPDFButton items={loans} title="Reporte de Préstamos de Libros"></ExportPDFButton>
+            </>}
+        >
+            <div className="sm:max-w-40">
                 <Label>Cantidad por página</Label>
-                <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
-                    if (!isNaN(limi) && limi > 0) {
-                        setLimit(parseInt(e.target.value))
-                    } else {
-                        setLimit(10)
-                    }
-
+                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
                 }}></Input>
             </div>
-            <div className="flex-1 min-w-52">
-                <Label>Buscar por Nombre del Libro</Label>
-                <div className="flex gap-2">
-                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault()
-                            setPage(1)
-                            setAppliedSearch(searchInput)
-                        }
-                    }}></Input>
-                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
-                        setPage(1)
-                        setAppliedSearch(searchInput)
-                    }}>Buscar</Button>
-                </div>
-            </div>
-            <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
-            <ExportPDFButton items={loans} title="Reporte de Préstamos de Libros"></ExportPDFButton>
-        </div>
+            <SearchField
+                label="Buscar por Nombre del Libro"
+                placeholder="Buscar libros..."
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setAppliedSearch(term)
+                }}
+            />
+        </FilterBar>
 
 
 

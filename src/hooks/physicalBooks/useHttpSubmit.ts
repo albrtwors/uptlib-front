@@ -1,8 +1,18 @@
-import { fetchDeleteConfig, fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig"
+import { fetchDeleteConfig } from "@/hooks/lib/fetch/fetchConfig"
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 
-export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalPages, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, page, createValues, editValues }: any) => {
+/**
+ * peticiones HTTP del área de libros físicos que siguen usando formularios
+ * (eliminación puntual y alta/baja de autores y géneros). El alta y la edición
+ * de libros viven ahora en /physical-book/bulk, dentro de la mesa de trabajo.
+ */
+export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalPages, limit, selectedBook, setDeleteModal, setBooks, page }: any) => {
+
+    const refresh = () => getBooks({ search, limit, page, category, pnf }).then((res: any) => {
+        setBooks(res.data)
+        totalPages.current = res.totalPages
+    })
 
     const handleCreateAuthor = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -14,8 +24,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
                 'Content-Type': 'application/json'
             }
         }).then(res => res.json()).then(data => {
-            const results = handleResponses(data)
-
+            handleResponses(data)
         })
 
 
@@ -43,8 +52,7 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
                 'Content-Type': 'application/json'
             }
         }).then(res => res.json()).then(data => {
-            const results = handleResponses(data)
-
+            handleResponses(data)
         })
 
 
@@ -61,98 +69,13 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
 
     }
 
-
-    const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-
-        e.preventDefault()
-        SwalAlert.loading()
-        const formData = new FormData(e.currentTarget)
-        const data = Object.fromEntries(formData.entries())
-
-        // 💡 Pasamos los autores y categorías como arreglos (lógica copiada de libros digitales)
-        const payload = {
-            ...data,
-            authorIds: createValues?.authorIds || [],
-            categoryIds: createValues?.categoryIds || [],
-            authorNames: createValues?.author?.name ? [createValues.author.name] : [],
-            categoryNames: createValues?.category?.name ? [createValues.category.name] : [],
-            // 🎯 PNFs como entidad: lista de nombres (el backend los crea si no existen)
-            pnfs: Array.isArray(createValues?.pnfs) ? createValues.pnfs : (createValues?.pnf ? [createValues.pnf] : [])
-        }
-
-        fetch(`/api/physical-book`, {
-            method: 'POST', body: JSON.stringify(payload), headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then((res: Response) => res.json())
-            .then((response: any) => {
-
-                const result = handleResponses(response)
-                if (result) {
-                    getBooks({ search, limit, page, category, pnf }).then((res: any) => {
-                        setBooks(res.data)
-                        totalPages.current = res.totalPages
-                    })
-                    setCreateModal(false)
-                }
-
-            })
-            .catch((err) => {
-                console.error('Error de red:', err);
-                SwalAlert.fire({
-                    title: 'Error de conexión',
-                    text: 'Verifica tu conexión',
-                    icon: 'error'
-                });
-            });
-    }
-
-    const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        SwalAlert.loading()
-        const formData = new FormData(e.currentTarget)
-        const dataXd = Object.fromEntries(formData.entries())
-
-        // 💡 Pasamos los autores y categorías como arreglos (lógica copiada de libros digitales)
-        const payload = {
-            ...dataXd,
-            authorIds: editValues?.authorIds || [],
-            categoryIds: editValues?.categoryIds || [],
-            authorNames: editValues?.author?.name ? [editValues.author.name] : [],
-            categoryNames: editValues?.category?.name ? [editValues.category.name] : [],
-            // 🎯 PNFs como entidad: lista de nombres (el backend los crea si no existen)
-            pnfs: Array.isArray(editValues?.pnfs) ? editValues.pnfs : (editValues?.pnf ? [editValues.pnf] : [])
-        }
-
-        fetch(`/api/physical-book/${selectedBook.id}`, {
-            body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'application/json' },
-            method: 'PATCH'
-        }).then(res => res.json()).then((data: any) => {
-            const result = handleResponses(data)
-            console.log(data)
-            if (result) {
-                getBooks({ search, limit, page, category, pnf }).then((res: any) => {
-                    setBooks(res.data)
-
-                    totalPages.current = res.totalPages
-                }
-                )
-                setEditModal(false)
-            }
-        })
-
-    }
-
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         SwalAlert.loading()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
         fetch(`/api/physical-book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getBooks({ search, limit, category, pnf }).then((res: any) => {
+                getBooks({ search, limit, page: 1, category, pnf }).then((res: any) => {
                     setBooks(res.data)
                     setPage(1)
                     totalPages.current = res.totalPages
@@ -161,5 +84,6 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
             }
         })
     }
-    return { handleDeleteGenre, handleCreateAuthor, handleDeleteAuthor, handleCreateGenre, handleDeleteSubmit, handleEditSubmit, handleCreateSubmit }
+
+    return { handleDeleteGenre, handleCreateAuthor, handleDeleteAuthor, handleCreateGenre, handleDeleteSubmit, refresh }
 }

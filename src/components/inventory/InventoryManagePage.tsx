@@ -22,6 +22,12 @@ import InventoryFormChatbot from "@/components/chatbot/inventory/InventoryFormCh
 import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
 import CategorySelectorModal from "../form/category/CategorySelectorModal"
 import CopiesManager from "@/components/copies/CopiesManager"
+import FilterBar from "@/components/ui/FilterBar"
+import SearchField from "@/components/form/SearchField"
+import BulkActionBar from "@/components/ui/BulkActionBar"
+import useRowSelection from "@/hooks/lib/useRowSelection"
+import { useBulkActions } from "@/hooks/lib/useBulkActions"
+import { itemToRecord } from "@/utils/jsonRecords"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
@@ -73,6 +79,21 @@ export default function InventoryManagePage({ }) {
         setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal, createValues, editValues
     })
 
+    const reload = (targetPage = page) => getItems({ search, limit, page: targetPage, type }).then((res: any) => {
+        setItems(res.data)
+        totalPages.current = res.totalPages
+    })
+
+    const selection = useRowSelection(items)
+    const { deleteSelected, exportSelected, busy: bulkBusy } = useBulkActions({
+        resource: 'inventory',
+        selection,
+        unit: 'item(s)',
+        toRecord: itemToRecord,
+        fileBaseName: 'inventario',
+        onDone: () => reload(1)
+    })
+
     // Sincronizar el formulario de edición cuando seleccionas un item de la tabla
     useEffect(() => {
         if (selectedItem) {
@@ -102,7 +123,7 @@ export default function InventoryManagePage({ }) {
         params.set('limit', limit.toString())
         params.set('page', page.toString())
         params.set('type', type.toString())
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
         getItems({ search, limit, page, type }).then((res: any) => {
             setItems(res.data)
@@ -138,41 +159,42 @@ export default function InventoryManagePage({ }) {
 
         <h1 className="text-3xl font-bold">Inventario</h1>
 
-        <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div className="flex-1">
-                <Label>Nombre del Item</Label>
-                <div className="flex gap-2">
-                    <Input className="w-full" value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault()
-                            setPage(1)
-                            setSearch(searchInput)
-                        }
-                    }} placeholder="Nombre del item"></Input>
-                    <Button type="button" onClick={() => {
-                        setPage(1)
-                        setSearch(searchInput)
-                    }}>Buscar</Button>
-                </div>
-            </div>
+        <FilterBar
+            actions={<>
+                <Button type="button" onClick={() => setCreateModal(true)}>Añadir Item</Button>
+                <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
+            </>}
+        >
+            <SearchField
+                label="Nombre del Item"
+                placeholder="Nombre del item"
+                value={searchInput}
+                onValueChange={setSearchInput}
+                onSubmit={(term) => {
+                    setPage(1)
+                    setSearch(term)
+                }}
+            />
 
-            <div>
+            <div className="sm:max-w-40">
                 <Label>Cantidad por Pagina</Label>
-                <Input type='number' onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    if (isNaN(parseInt(e.currentTarget.value))) {
-                        setLimit('10')
-                    } else {
-                        setLimit(e.currentTarget.value)
-                    }
+                <Input type='number' defaultValue={10} onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setLimit(isNaN(parseInt(e.currentTarget.value)) ? '10' : e.currentTarget.value)
                 }} placeholder="Cantidad"></Input>
             </div>
 
             <TypeFilter setSearchHandler={setType}></TypeFilter>
-            <Button onClick={() => setCreateModal(true)}>Añadir Item</Button>
-            <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
-        </div>
+        </FilterBar>
 
         <Pagination totalItems={totalPages.current} limit={limit} page={page} setPage={setPage}></Pagination>
+
+        <BulkActionBar
+            selection={selection}
+            unit="item(s)"
+            busy={bulkBusy}
+            onDelete={deleteSelected}
+            onExport={exportSelected}
+        />
 
         {/* MODAL CREAR */}
         {createModal && <GenericModalContainer>
@@ -307,6 +329,7 @@ export default function InventoryManagePage({ }) {
         </GenericModalContainer>}
 
         {items && <ManageItemsTable
+            selection={selection}
             onDelete={(item: any) => {
                 setDeleteModal(true)
                 setSelectedItem(item)
@@ -341,12 +364,7 @@ export default function InventoryManagePage({ }) {
             resourceId={copiesItem.id}
             title={copiesItem.name}
             onClose={() => setCopiesItem(null)}
-            onChanged={() => {
-                getItems({ search, limit, page, type }).then((res: any) => {
-                    setItems(res.data)
-                    totalPages.current = res.totalPages
-                })
-            }}
+            onChanged={() => reload()}
         />}
 
         <div>

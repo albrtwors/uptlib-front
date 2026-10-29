@@ -21,6 +21,10 @@ import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
 import PnfSelectorModal from "@/components/form/pnf/PnfSelectorModal"
 import { usePnfs } from "@/hooks/pnfs/usePnfs"
 import { pnfNameOf } from "@/utils/pnf"
+import BulkActionBar from "@/components/ui/BulkActionBar"
+import useRowSelection from "@/hooks/lib/useRowSelection"
+import { useBulkActions } from "@/hooks/lib/useBulkActions"
+import { digitalBookToRecord } from "@/utils/jsonRecords"
 
 export const useManageBooks = ({ search, limit, page, pnf, authorIds }: any) => {
     const [books, setUseAllBooks]: any = useState([])
@@ -253,6 +257,16 @@ export default function ManageBooksPage() {
             })
     }
 
+    const selection = useRowSelection(books)
+    const { deleteSelected, exportSelected, exportAll, busy: bulkBusy } = useBulkActions({
+        resource: 'book',
+        selection,
+        unit: 'libro(s) digital(es)',
+        toRecord: digitalBookToRecord,
+        fileBaseName: 'libros-digitales',
+        onDone: refreshTableData
+    })
+
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', appliedSearch)
@@ -260,7 +274,7 @@ export default function ManageBooksPage() {
         params.set('page', page.toString()) // Aseguramos persistencia de la página
         if (pnfFilter) params.set('pnf', pnfFilter)
         if (authorFilterIds.length > 0) params.set('authors', authorFilterIds.join(','))
-        router.push(`${pathname}?${params}`)
+        router.replace(`${pathname}?${params}`)
 
         refreshTableData()
     }, [appliedSearch, limit, page, pnfFilter, authorFilterIds]);
@@ -367,6 +381,31 @@ export default function ManageBooksPage() {
                 />
             )}
 
+            <div className="flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    onClick={selection.toggleAll}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
+                >
+                    {selection.allSelected ? 'Quitar esta página' : 'Seleccionar esta página'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => exportAll(books)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700"
+                >
+                    Exportar página en JSON
+                </button>
+            </div>
+
+            <BulkActionBar
+                selection={selection}
+                unit="libro(s)"
+                busy={bulkBusy}
+                onDelete={deleteSelected}
+                onExport={exportSelected}
+            />
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {books && books.map((book: any) => (
                     <BookManageCard
@@ -376,6 +415,8 @@ export default function ManageBooksPage() {
                         id={book.id}
                         title={book.title}
                         description={book.description}
+                        selected={selection.isSelected(book.id)}
+                        onToggleSelect={() => selection.toggle(book.id)}
                         pnf={book.pnfs?.map(pnfNameOf).filter(Boolean).join(', ') || 'GENERAL'}
                     />
                 ))}

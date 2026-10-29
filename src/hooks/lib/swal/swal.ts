@@ -12,6 +12,21 @@ export class SwalAlert {
         })
     }
 
+    static confirm(title: string, text: string): Promise<boolean> {
+        return Swal.fire({
+            customClass: {
+                container: 'modal'
+            },
+            title,
+            text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+        }).then((result) => !!result.isConfirmed)
+    }
+
     static loading() {
         Swal.fire({
             customClass: {
