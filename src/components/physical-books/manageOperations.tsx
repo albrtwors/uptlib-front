@@ -42,31 +42,34 @@ export default function ManageOperationsPage() {
 
     //search
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
+    const [type, setType] = useState('')
     const { page, totalPages, setPage } = usePagination()
     const [limit, setLimit] = useState(10)
-    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
-    const { operations, setOperations, getOperations } = useOperations({ search: searchInput, limit })
+    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: appliedSearch, limit })
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit: limit })
+    const { operations, setOperations, getOperations } = useOperations({ search: appliedSearch, limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, selectedOperation, totalPages })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, type, selectedOperation, totalPages })
 
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
+        params.set('type', type)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation?limit=${limit}&page=${page}&search=${searchInput}`)
+        fetch(`/api/physical-book-operation?limit=${limit}&page=${page}&type=${type}&search=${appliedSearch}`)
             .then(res => res.json())
             .then((data: any) => {
 
                 setOperations(data.data)
                 totalPages.current = data.totalPages
             })
-    }, [searchInput, limit, page]);
+    }, [appliedSearch, type, limit, page]);
 
 
 
@@ -87,9 +90,31 @@ export default function ManageOperationsPage() {
 
                 }}></Input>
             </div>
-            <div>
+            <div className="flex-1 min-w-52">
                 <Label>Buscar por Nombre del Libro</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+                <div className="flex gap-2">
+                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                            setPage(1)
+                            setAppliedSearch(searchInput)
+                        }
+                    }}></Input>
+                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
+                        setPage(1)
+                        setAppliedSearch(searchInput)
+                    }}>Buscar</Button>
+                </div>
+            </div>
+            <div>
+                <Label>Tipo de Operación</Label>
+                <select value={type} onChange={(e: any) => {
+                    setType(e.target.value)
+                    setPage(1)
+                }} className="h-11 p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white/90 dark:border-gray-700">
+                    <option value="">TODAS LAS OPERACIONES</option>
+                    {OPERATIONS.map((operationType: string) => <option key={operationType} value={operationType}>{operationType}</option>)}
+                </select>
             </div>
             <div className="flex gap-2 justify-center">
                 <Button className="flex-1" onClick={() => setEntrieModal(true)}>Entrada</Button>

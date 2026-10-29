@@ -3,8 +3,8 @@ export const useOperations = ({ search, limit }: any) => {
     const [operations, setOperations]: any = useState([])
 
 
-    const getOperations = async ({ search, limit }: any) => {
-        return fetch(`/api/physical-book-operation?search=${search}&limit=${limit ?? 10}`).then((res: any) => res.json()).then((data: any) => {
+    const getOperations = async ({ search, limit, type }: any) => {
+        return fetch(`/api/physical-book-operation?search=${search ?? ''}&type=${type ?? ''}&limit=${limit ?? 10}`).then((res: any) => res.json()).then((data: any) => {
             return data
         })
     }

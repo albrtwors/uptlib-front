@@ -2,7 +2,7 @@ import { fetchDeleteConfig, fetchPatchConfig } from "@/hooks/lib/fetch/fetchConf
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 
-export const useHttpSubmit = ({ totalPages, search, getOperations, limit, selectedOperation, setDeleteModal, setCreateModal, setEditModal, setOperations, selectedBook }: any) => {
+export const useHttpSubmit = ({ totalPages, search, type, getOperations, limit, selectedOperation, setDeleteModal, setCreateModal, setEditModal, setOperations, selectedBook }: any) => {
 
     const handleEntrieSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -19,7 +19,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         }).then((res: any) => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => {
+                getOperations({ search, limit, type }).then((res: any) => {
                     setOperations(res.data)
                 })
                 setCreateModal(false)
@@ -44,7 +44,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
 
                 const result = handleResponses(response)
                 if (result) {
-                    getOperations({ search, limit }).then((res: any) => {
+                    getOperations({ search, limit, type }).then((res: any) => {
                         setOperations(res.data)
                         totalPages.current = res.totalPages
                     })
@@ -77,7 +77,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         }).then((res: any) => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => {
+                getOperations({ search, limit, type }).then((res: any) => {
 
                     setOperations(res.data)
                     totalPages.current = res.totalPages
@@ -100,7 +100,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
             const result = handleResponses(data)
             console.log(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => setOperations(res))
+                getOperations({ search, limit, type }).then((res: any) => setOperations(res))
                 setEditModal(false)
             }
         })
@@ -114,7 +114,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         fetch(`/api/physical-book-operation/${selectedOperation.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
             const result = handleResponses(data)
             if (result) {
-                getOperations({ search, limit }).then((res: any) => setOperations(res))
+                getOperations({ search, limit, type }).then((res: any) => setOperations(res))
                 setDeleteModal(false)
             }
         })

@@ -15,6 +15,7 @@ interface BookOperation {
     copy?: { code: string };
     book: {
         title: string;
+        code?: string | null;
     };
 }
 
@@ -80,7 +81,7 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                         <div className="font-semibold text-gray-900 truncate mb-1">
                                             {loan.book?.title || loan.bookTitle || `Libro ID: ${loan.bookId}`}
                                         </div>
-                                        <div className="text-sm text-gray-500">ID: {loan.bookId}</div>
+                                        <div className="text-sm text-gray-500 font-mono">Código: {loan.book?.code || '—'}</div>
                                     </td>
 
                                     {/* Persona */}
@@ -188,7 +189,7 @@ export default function ManageLoansTable({ loans, onEdit, onSettle }: ManageLoan
                                     <h3 className="font-bold text-base text-gray-900 line-clamp-2">
                                         {loan.book?.title || loan.bookTitle || `Libro ID: ${loan.bookId}`}
                                     </h3>
-                                    <p className="text-xs text-gray-400 mt-0.5">ID Libro: {loan.bookId}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5 font-mono">Código: {loan.book?.code || '—'}</p>
                                 </div>
                                 <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full shrink-0">
                                     {loan.type}

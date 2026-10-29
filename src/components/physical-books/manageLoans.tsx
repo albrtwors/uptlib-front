@@ -39,23 +39,24 @@ export default function ManageLoansPage() {
 
     //search
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
     const [limit, setLimit] = useState(10)
-    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: searchInput, limit })
+    const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: appliedSearch, limit })
     const { page, setPage, totalPages } = usePagination()
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit })
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit: limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, setPage })
+    const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleSettle } = useHttpSubmit({ page, totalPages, getLoans, setLoans, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, setPage })
 
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${searchInput}&page=${page}`)
+        fetch(`/api/physical-book-operation/loan?limit=${limit}&search=${appliedSearch}&page=${page}`)
             .then(res => res.json())
             .then((data: any) => {
 
@@ -63,7 +64,7 @@ export default function ManageLoansPage() {
                 totalPages.current = data.totalPages
                 console.log(totalPages)
             })
-    }, [searchInput, limit, page]);
+    }, [appliedSearch, limit, page]);
 
 
 
@@ -87,9 +88,21 @@ export default function ManageLoansPage() {
 
                 }}></Input>
             </div>
-            <div>
+            <div className="flex-1 min-w-52">
                 <Label>Buscar por Nombre del Libro</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input>
+                <div className="flex gap-2">
+                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                            setPage(1)
+                            setAppliedSearch(searchInput)
+                        }
+                    }}></Input>
+                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
+                        setPage(1)
+                        setAppliedSearch(searchInput)
+                    }}>Buscar</Button>
+                </div>
             </div>
             <Button onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
             <ExportPDFButton items={loans} title="Reporte de Préstamos de Libros"></ExportPDFButton>

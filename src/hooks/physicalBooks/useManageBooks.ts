@@ -4,7 +4,14 @@ export const useManageBooks = ({ search, limit }: any) => {
 
 
     const getBooks = async ({ search, limit, page, category, pnf }: any) => {
-        return fetch(`/api/physical-book?genre=${category}&pnf=${pnf}&search=${search}&limit=${limit ?? 10}&page=${page ?? 1}`).then((res: any) => res.json()).then((data: any) => {
+        const params = new URLSearchParams()
+        if (search) params.set('search', search)
+        if (category) params.set('genre', category)
+        if (pnf) params.set('pnf', pnf)
+        params.set('limit', `${limit ?? 10}`)
+        params.set('page', `${page ?? 1}`)
+
+        return fetch(`/api/physical-book?${params}`).then((res: any) => res.json()).then((data: any) => {
             return data
         })
     }

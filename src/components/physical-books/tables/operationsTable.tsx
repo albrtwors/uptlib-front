@@ -40,7 +40,7 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                                 {/* Título */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
                                     <div className="font-semibold text-gray-900 truncate mb-1">{operation.book?.title}</div>
-                                    <div className="text-sm text-gray-500">ID Libro: {operation.book?.id}</div>
+                                    <div className="text-sm text-gray-500 font-mono">Código: {operation.book?.code || '—'}</div>
                                 </td>
 
                                 {/* ISBN */}
@@ -112,7 +112,7 @@ export default function ManagePhysicalBooksTable({ operations, onDelete, onEdit 
                                 <h3 className="font-bold text-base text-gray-900 line-clamp-2">
                                     {operation.book?.title}
                                 </h3>
-                                <p className="text-xs text-gray-400 mt-0.5">ID Libro: {operation.book?.id}</p>
+                                <p className="text-xs text-gray-400 mt-0.5 font-mono">Código: {operation.book?.code || '—'}</p>
                             </div>
 
                             {/* Badge dinámico de color según tipo de operación */}

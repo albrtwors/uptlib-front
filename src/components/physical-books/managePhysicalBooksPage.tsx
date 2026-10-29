@@ -172,7 +172,7 @@ export default function ManagePhysicalBooksPage() {
                 <select value={pnf} onChange={(e: any) => {
                     setPnf(e.target.value)
                     setPage(1)
-                }} className="p-2 rounded-lg border border-gray-300 dark:bg-gray-900 dark:text-white dark:border-gray-700">
+                }} className="h-11 p-2 rounded-lg border border-gray-300 bg-white text-gray-800 dark:bg-gray-900 dark:text-white dark:border-gray-700">
                     <option value="">TODOS LOS PNF</option>
                     {(Array.isArray(pnfOptions) ? pnfOptions : []).map((pnfEntity: any) => <option key={pnfEntity.id} value={pnfEntity.name}>{pnfEntity.name}</option>)}
                 </select>
