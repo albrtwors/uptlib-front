@@ -8,9 +8,11 @@ interface PhysicalBookFormChatbotProps {
     onExtract: (data: {
         title: string | null
         isbn: string | null
+        code: string | null
         authorName: string | null
         categoryName: string | null
-        pnf: string | null
+        pnfs?: string[]
+        pnf?: string | null
         yearOfPublication: string | null
         editorial: string | null
         totalStock: string | null

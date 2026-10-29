@@ -19,12 +19,8 @@ import BookFormChatbot from "@/components/chatbot/book/BookFormChatbot"
 import BookBulkChatbot from "@/components/chatbot/book/BookBulkChatbot"
 import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
 import PnfSelectorModal from "@/components/form/pnf/PnfSelectorModal"
-
-const PNF_OPTIONS = [
-    "GENERAL", "INFORMATICA", "ELECTRONICA", "MANTENIMIENTO",
-    "CONTADURIA", "ADMINISTRACION", "ELECTRICIDAD",
-    "MECANICA", "INSTRUMENTACION", "TELECOMUNICACIONES"
-];
+import { usePnfs } from "@/hooks/pnfs/usePnfs"
+import { pnfNameOf } from "@/utils/pnf"
 
 export const useManageBooks = ({ search, limit, page, pnf, authorIds }: any) => {
     const [books, setUseAllBooks]: any = useState([])
@@ -184,6 +180,7 @@ export default function ManageBooksPage() {
 
     const { page, setPage, totalPages } = usePagination()
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
     const [limit, setLimit] = useState(10)
     const [pnfFilter, setPnfFilter] = useState('')
 
@@ -192,9 +189,10 @@ export default function ManageBooksPage() {
     // 💡 CLAVE DE LA VICTORIA: Estado reactivo local para renderizar controles en tiempo real
     const [calculatedItems, setCalculatedItems] = useState(0)
 
-    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
+    const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
+    const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
     const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({
-        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, authorFilterIds, setDeleteModal, setCreateModal, setEditModal, search: searchInput, createValues, editValues, createModal
+        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, authorFilterIds, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, createValues, editValues, createModal
     })
 
     useEffect(() => {
@@ -203,7 +201,7 @@ export default function ManageBooksPage() {
             setEditValues({
                 title: selectedBook.title || "",
                 description: selectedBook.description || "",
-                pnfs: selectedBook.pnfs?.map((p: any) => p.pnf) || [],
+                pnfs: selectedBook.pnfs?.map(pnfNameOf).filter(Boolean) || [],
                 authorIds: selectedBook.authors?.map((a: any) => a.id) || [],
                 pdfUrl: defaultUrl
             });
@@ -246,7 +244,7 @@ export default function ManageBooksPage() {
     };
 
     const refreshTableData = () => {
-        getBooks({ search: searchInput, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
+        getBooks({ search: appliedSearch, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
             .then(data => {
                 setUseAllBooks(data.data)
                 totalPages.current = data.totalPages
@@ -257,7 +255,7 @@ export default function ManageBooksPage() {
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString()) // Aseguramos persistencia de la página
         if (pnfFilter) params.set('pnf', pnfFilter)
@@ -265,7 +263,7 @@ export default function ManageBooksPage() {
         router.push(`${pathname}?${params}`)
 
         refreshTableData()
-    }, [searchInput, limit, page, pnfFilter, authorFilterIds]);
+    }, [appliedSearch, limit, page, pnfFilter, authorFilterIds]);
 
     const handleAuthorModalChange = (ids: string[]) => {
         if (modalContext === 'filter') {
@@ -302,15 +300,31 @@ export default function ManageBooksPage() {
 
                 <div className="w-full sm:flex-1">
                     <Label>Buscar por Nombre / Texto</Label>
-                    <Input
-                        className="w-full"
-                        placeholder="Escribe el nombre del libro..."
-                        defaultValue={searchInput}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            setSearchInput(e.target.value)
-                            setPage(1)
-                        }}
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            className="w-full"
+                            placeholder="Escribe el nombre del libro..."
+                            value={searchInput}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    setPage(1)
+                                    setAppliedSearch(searchInput)
+                                }
+                            }}
+                        />
+                        <Button
+                            type="button"
+                            className="h-11 whitespace-nowrap px-5"
+                            onClick={() => {
+                                setPage(1)
+                                setAppliedSearch(searchInput)
+                            }}
+                        >
+                            Buscar
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="w-full sm:w-48">
@@ -324,7 +338,7 @@ export default function ManageBooksPage() {
                         className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm dark:bg-gray-900 dark:text-white border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">TODOS LOS PNF</option>
-                        {PNF_OPTIONS.map((option, key) => <option key={key} value={option}>{option}</option>)}
+                        {(Array.isArray(pnfOptions) ? pnfOptions : []).map((pnf: any) => <option key={pnf.id} value={pnf.name}>{pnf.name}</option>)}
                     </select>
                 </div>
 
@@ -362,7 +376,7 @@ export default function ManageBooksPage() {
                         id={book.id}
                         title={book.title}
                         description={book.description}
-                        pnf={book.pnfs?.map((p: any) => p.pnf).join(', ') || 'GENERAL'}
+                        pnf={book.pnfs?.map(pnfNameOf).filter(Boolean).join(', ') || 'GENERAL'}
                     />
                 ))}
             </div>
@@ -509,7 +523,6 @@ export default function ManageBooksPage() {
             <PnfSelectorModal
                 isOpen={isPnfModalOpen}
                 onClose={() => setIsPnfModalOpen(false)}
-                options={PNF_OPTIONS}
                 selectedPnfs={createModal ? createValues.pnfs : editValues.pnfs}
                 onChange={(pnfs: any) => {
                     if (createModal) setCreateValues({ ...createValues, pnfs })

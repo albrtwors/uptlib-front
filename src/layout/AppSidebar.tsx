@@ -94,11 +94,26 @@ const filterNavItemsByRole = (items: NavItem[] | any, role: Role) => {
   })
 }
 
+const normalizeText = (value: string) =>
+  value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, linkFilter } = useSidebar();
   const [role, setRole] = useState('')
   const pathname = usePathname();
   const router = useRouter()
+
+  const filterQuery = normalizeText(linkFilter.trim())
+  const visibleNavItems = !filterQuery
+    ? navItems
+    : navItems.filter((item) => {
+        const groupMatches = normalizeText(item.name).includes(filterQuery)
+        const subMatches = (item.subItems || []).some((s) => normalizeText(s.name).includes(filterQuery))
+        return groupMatches || subMatches
+      }).map((item) => {
+        if (normalizeText(item.name).includes(filterQuery) || !item.subItems) return item
+        return { ...item, subItems: item.subItems.filter((s) => normalizeText(s.name).includes(filterQuery)) }
+      })
   useEffect(() => {
     fetch('/api/users/role').then(res => res.json()).then(role => {
       setRole(role.role)
@@ -119,12 +134,16 @@ const AppSidebar: React.FC = () => {
     menuType: "main" | "others"
   ) => (
     <ul className="flex flex-col gap-4">
-      {navItems.map((nav, index) => (
+      {navItems.map((nav, index) => {
+        const isGroupOpen = menuType === "main" && filterQuery
+          ? true
+          : openSubmenu?.type === menuType && openSubmenu?.index === index;
+        return (
         <li key={nav.name}>
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group  ${openSubmenu?.type === menuType && openSubmenu?.index === index
+              className={`menu-item group  ${isGroupOpen
                 ? "menu-item-active"
                 : "menu-item-inactive"
                 } cursor-pointer ${!isExpanded && !isHovered
@@ -133,7 +152,7 @@ const AppSidebar: React.FC = () => {
                 }`}
             >
               <span
-                className={` ${openSubmenu?.type === menuType && openSubmenu?.index === index
+                className={` ${isGroupOpen
                   ? "menu-item-icon-active"
                   : "menu-item-icon-inactive"
                   }`}
@@ -145,8 +164,7 @@ const AppSidebar: React.FC = () => {
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
+                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${isGroupOpen
                     ? "rotate-180 text-brand-500"
                     : ""
                     }`}
@@ -182,9 +200,11 @@ const AppSidebar: React.FC = () => {
               className="overflow-hidden transition-all duration-300"
               style={{
                 height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
+                  menuType === "main" && filterQuery
+                    ? "auto"
+                    : isGroupOpen
+                      ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                      : "0px",
               }}
             >
               <ul className="mt-2 space-y-1 ml-9">
@@ -227,7 +247,8 @@ const AppSidebar: React.FC = () => {
             </div>
           )}
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 
@@ -346,7 +367,12 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(visibleNavItems, "main")}
+              {filterQuery && visibleNavItems.length === 0 && (
+                <p className="px-2 text-xs text-gray-500 dark:text-gray-400">
+                  Ningún enlace coincide con «{linkFilter}»
+                </p>
+              )}
             </div>
 
             {/* <div className="">

@@ -47,6 +47,7 @@ export const useItems = ({ search, limit }: any) => {
 
 export default function InventoryManagePage({ }) {
     const { page, setPage, totalPages } = usePagination()
+    const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')
     const [type, setType] = useState('')
     const [limit, setLimit] = useState('10')
@@ -138,9 +139,21 @@ export default function InventoryManagePage({ }) {
         <h1 className="text-3xl font-bold">Inventario</h1>
 
         <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div>
+            <div className="flex-1">
                 <Label>Nombre del Item</Label>
-                <Input onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)} placeholder="Nombre del item"></Input>
+                <div className="flex gap-2">
+                    <Input className="w-full" value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                            setPage(1)
+                            setSearch(searchInput)
+                        }
+                    }} placeholder="Nombre del item"></Input>
+                    <Button type="button" onClick={() => {
+                        setPage(1)
+                        setSearch(searchInput)
+                    }}>Buscar</Button>
+                </div>
             </div>
 
             <div>

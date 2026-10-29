@@ -75,7 +75,9 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
             authorIds: createValues?.authorIds || [],
             categoryIds: createValues?.categoryIds || [],
             authorNames: createValues?.author?.name ? [createValues.author.name] : [],
-            categoryNames: createValues?.category?.name ? [createValues.category.name] : []
+            categoryNames: createValues?.category?.name ? [createValues.category.name] : [],
+            // 🎯 PNFs como entidad: lista de nombres (el backend los crea si no existen)
+            pnfs: Array.isArray(createValues?.pnfs) ? createValues.pnfs : (createValues?.pnf ? [createValues.pnf] : [])
         }
 
         fetch(`/api/physical-book`, {
@@ -118,7 +120,9 @@ export const useHttpSubmit = ({ category, setPage, pnf, search, getBooks, totalP
             authorIds: editValues?.authorIds || [],
             categoryIds: editValues?.categoryIds || [],
             authorNames: editValues?.author?.name ? [editValues.author.name] : [],
-            categoryNames: editValues?.category?.name ? [editValues.category.name] : []
+            categoryNames: editValues?.category?.name ? [editValues.category.name] : [],
+            // 🎯 PNFs como entidad: lista de nombres (el backend los crea si no existen)
+            pnfs: Array.isArray(editValues?.pnfs) ? editValues.pnfs : (editValues?.pnf ? [editValues.pnf] : [])
         }
 
         fetch(`/api/physical-book/${selectedBook.id}`, {

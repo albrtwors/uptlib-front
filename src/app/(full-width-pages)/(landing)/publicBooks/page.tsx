@@ -10,6 +10,7 @@ import Navbar from "@/components/landing/navbar/Navbar"
 import Button from "@/components/ui/button/Button"
 import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
 import usePagination from "@/hooks/usePaginationOwn"
+import { usePnfs } from "@/hooks/pnfs/usePnfs"
 
 // 1️⃣ Componente con toda la lógica reactiva y la maquetación de tu catálogo
 function PublicBooksCatalogContent() {
@@ -17,6 +18,7 @@ function PublicBooksCatalogContent() {
     const pathname = usePathname()
     const router = useRouter()
 
+    const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')
     const [limit, setLimit] = useState(10)
     const [pnf, setPnf] = useState('')
@@ -32,11 +34,7 @@ function PublicBooksCatalogContent() {
     const [books, setBooks] = useState<any[]>([])
     const [calculatedItems, setCalculatedItems] = useState(0)
 
-    const pnfOptions = [
-        "GENERAL", "INFORMATICA", "ELECTRONICA", "MANTENIMIENTO",
-        "CONTADURIA", "ADMINISTRACION", "ELECTRICIDAD",
-        "MECANICA", "INSTRUMENTACION", "TELECOMUNICACIONES"
-    ]
+    const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
 
     useEffect(() => {
         const params = new URLSearchParams()
@@ -106,15 +104,31 @@ function PublicBooksCatalogContent() {
                     {/* Buscador de Texto */}
                     <div className="w-full sm:flex-1">
                         <Label>Nombre del libro</Label>
-                        <Input
-                            className="w-full"
-                            placeholder="Buscar libros..."
-                            defaultValue={search}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                setSearch(e.target.value)
-                                setPage(1)
-                            }}
-                        />
+                        <div className="flex gap-2">
+                            <Input
+                                className="w-full"
+                                placeholder="Buscar libros..."
+                                value={searchInput}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+                                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        setPage(1)
+                                        setSearch(searchInput)
+                                    }
+                                }}
+                            />
+                            <Button
+                                type="button"
+                                className="h-11 whitespace-nowrap px-5"
+                                onClick={() => {
+                                    setPage(1)
+                                    setSearch(searchInput)
+                                }}
+                            >
+                                Buscar
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Filtro por PNF */}
@@ -129,8 +143,8 @@ function PublicBooksCatalogContent() {
                             }}
                         >
                             <option value="">TODOS LOS PNF</option>
-                            {pnfOptions.map((option, key) => (
-                                <option key={key} value={option}>{option}</option>
+                            {(Array.isArray(pnfOptions) ? pnfOptions : []).map((p: any) => (
+                                <option key={p.id} value={p.name}>{p.name}</option>
                             ))}
                         </select>
                     </div>
@@ -170,7 +184,7 @@ function PublicBooksCatalogContent() {
                             routepdf={book.routepdf}
                             key={book.id}
                             id={book.id}
-                            pnf={book.pnfs?.map((p: any) => p.pnf).join(', ') || book.pnf || 'GENERAL'}
+                            pnf={book.pnfs?.map((p: any) => p.pnf?.name ?? p.name ?? p.pnf).join(', ') || book.pnf || 'GENERAL'}
                             title={book.title}
                             description={book.description}
                         />

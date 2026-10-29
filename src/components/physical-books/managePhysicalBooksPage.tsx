@@ -15,8 +15,9 @@ import AuthorSearcher from "../form/input/authors/AuthorSearcher"
 import CategorySearcher from "../form/input/category/categorySearcher"
 import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
 import CategorySelectorModal from "../form/category/CategorySelectorModal"
+import PnfSelectorModal from "../form/pnf/PnfSelectorModal"
+import { usePnfs } from "@/hooks/pnfs/usePnfs"
 import Select from "../form/Select"
-import { CATEGORIES } from "@/consts/categories"
 import ManagePhysicalBooksTable from "./tables/manageTable"
 import usePagination from "@/hooks/usePaginationOwn"
 import Pagination from "../pagination/OwnPaginator"
@@ -34,6 +35,7 @@ export default function ManagePhysicalBooksPage() {
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false, select: false })
     const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false, select: false })
+    const [pnfModal, setPnfModal] = useState(false)
 
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [copiesBook, setCopiesBook]: any = useState(null)
@@ -42,6 +44,7 @@ export default function ManagePhysicalBooksPage() {
     const router = useRouter();
 
     const [searchInput, setSearchInput] = useState('')
+    const [appliedSearch, setAppliedSearch] = useState('')
     const [category, setCategory] = useState('')
     const [pnf, setPnf] = useState('')
     const [limit, setLimit] = useState(10)
@@ -49,16 +52,18 @@ export default function ManagePhysicalBooksPage() {
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit, page, totalPages })
 
     // 💡 ESTADOS PARA PODER INTERCEPTAR EL COMPORTAMIENTO DE LA IA Y CONTROLAR LOS INPUTS
-    const [createValues, setCreateValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[] })
-    const [editValues, setEditValues] = useState({ title: '', isbn: '', pnf: '', yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[], })
+    const [createValues, setCreateValues] = useState({ title: '', isbn: '', code: '', pnfs: [] as string[], yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[] })
+    const [editValues, setEditValues] = useState({ title: '', isbn: '', code: '', pnfs: [] as string[], yearOfPublication: '', editorial: '', totalStock: '', author: null as any, category: null as any, authorIds: [] as string[], categoryIds: [] as string[], })
 
-    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: searchInput, page, createValues, editValues })
+    const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
+
+    const { handleCreateGenre, handleDeleteGenre, handleDeleteAuthor, handleCreateSubmit, handleEditSubmit, handleDeleteSubmit, handleCreateAuthor } = useHttpSubmit({ setPage, category, pnf, setBooks: setUseAllBooks, totalPages, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, page, createValues, editValues })
 
     // Limpiar estados al abrir el modal de creación
     useEffect(() => {
         if (createModal) {
             setSelectedBook(null)
-            setCreateValues({ title: '', isbn: '', pnf: CATEGORIES[0] || '', yearOfPublication: '', editorial: '', totalStock: '', author: null, category: null, authorIds: [], categoryIds: [] })
+            setCreateValues({ title: '', isbn: '', code: '', pnfs: [], yearOfPublication: '', editorial: '', totalStock: '', author: null, category: null, authorIds: [], categoryIds: [] })
         }
     }, [createModal])
 
@@ -68,7 +73,8 @@ export default function ManagePhysicalBooksPage() {
             setEditValues({
                 title: selectedBook.title || '',
                 isbn: selectedBook.isbn || '',
-                pnf: selectedBook.pnf || '',
+                code: selectedBook.code || '',
+                pnfs: (selectedBook.pnfs || []).map((p: any) => p.name).filter(Boolean),
                 yearOfPublication: selectedBook.yearOfPublication?.toString() || '',
                 editorial: selectedBook.editorial || '',
                 totalStock: selectedBook.availableStock?.toString() || '0',
@@ -82,20 +88,20 @@ export default function ManagePhysicalBooksPage() {
 
     useEffect(() => {
         const params = new URLSearchParams()
-        params.set('search', searchInput)
+        params.set('search', appliedSearch)
         params.set('limit', limit.toString())
         params.set('page', page.toString())
         params.set('genre', category.toString())
         params.set('pnf', pnf.toString())
         router.push(`${pathname}?${params}`)
 
-        fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${searchInput}`)
+        fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${appliedSearch}`)
             .then(res => res.json())
             .then((data: any) => {
                 setUseAllBooks(data.data)
                 totalPages.current = data.totalPages
             })
-    }, [searchInput, limit, page, category, pnf]);
+    }, [appliedSearch, limit, page, category, pnf]);
 
     // 💡 HANDLERS PARA INYECTAR LAS EXTRACCIONES DEL ASISTENTE EN LOS CAMPOS
     const handleAICreateExtract = (data: any) => {
@@ -103,7 +109,8 @@ export default function ManagePhysicalBooksPage() {
             ...prev,
             title: data.title ?? prev.title,
             isbn: data.isbn ?? prev.isbn,
-            pnf: data.pnf ?? prev.pnf,
+            code: data.code ?? prev.code,
+            pnfs: data.pnfs && data.pnfs.length > 0 ? data.pnfs : (data.pnf ? [data.pnf] : prev.pnfs),
             yearOfPublication: data.yearOfPublication ?? prev.yearOfPublication,
             editorial: data.editorial ?? prev.editorial,
             totalStock: data.totalStock ?? prev.totalStock,
@@ -117,7 +124,8 @@ export default function ManagePhysicalBooksPage() {
             ...prev,
             title: data.title ?? prev.title,
             isbn: data.isbn ?? prev.isbn,
-            pnf: data.pnf ?? prev.pnf,
+            code: data.code ?? prev.code,
+            pnfs: data.pnfs && data.pnfs.length > 0 ? data.pnfs : (data.pnf ? [data.pnf] : prev.pnfs),
             yearOfPublication: data.yearOfPublication ?? prev.yearOfPublication,
             editorial: data.editorial ?? prev.editorial,
             totalStock: data.totalStock ?? prev.totalStock,
@@ -130,9 +138,22 @@ export default function ManagePhysicalBooksPage() {
         <h1 className="text-3xl font-bold">Gestionar Libros Físicos</h1>
 
         <div className="flex sm:flex-col lg:flex-row flex-col h-20 md:flex-row gap-3 min-w-full overflow-y-scroll">
-            <div>
+            <div className="flex-1 min-w-52">
                 <Label>Titulo del Libro</Label>
-                <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}></Input></div>
+                <div className="flex gap-2">
+                    <Input className="w-full" placeholder="Buscar libros..." value={searchInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                            setPage(1)
+                            setAppliedSearch(searchInput)
+                        }
+                    }}></Input>
+                    <Button type="button" className="h-11 whitespace-nowrap px-4" onClick={() => {
+                        setPage(1)
+                        setAppliedSearch(searchInput)
+                    }}>Buscar</Button>
+                </div>
+            </div>
             <div>
                 <Label>Cantidad</Label>
                 <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,11 +168,13 @@ export default function ManagePhysicalBooksPage() {
             <CategoryFilter setSearchHandler={setCategory}></CategoryFilter>
 
             <div>
-                <Label>Categoría</Label>
-                <select onChange={(e: any) => {
+                <Label>PNF</Label>
+                <select value={pnf} onChange={(e: any) => {
                     setPnf(e.target.value)
-                }} name="pnf" className="p-2 rounded-lg border border-gray-300">
-                    {CATEGORIES.map((category, index) => <option key={index} value={category}>{category}</option>)}
+                    setPage(1)
+                }} className="p-2 rounded-lg border border-gray-300 dark:bg-gray-900 dark:text-white dark:border-gray-700">
+                    <option value="">TODOS LOS PNF</option>
+                    {(Array.isArray(pnfOptions) ? pnfOptions : []).map((pnfEntity: any) => <option key={pnfEntity.id} value={pnfEntity.name}>{pnfEntity.name}</option>)}
                 </select>
             </div>
             <Button onClick={() => setCreateModal(true)}>Añadir un Libro</Button>
@@ -261,6 +284,10 @@ export default function ManagePhysicalBooksPage() {
                         <Label>ISBN</Label>
                         <Input defaultValue={createValues.isbn} onChange={(e: any) => setCreateValues({ ...createValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
                     </div>
+                    <div>
+                        <Label>Código de la Biblioteca</Label>
+                        <Input defaultValue={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} name="code" placeholder="Ej: LIB-INF-001"></Input>
+                    </div>
                     {/* 💡 Selección múltiple de autores y categorías (lógica copiada de libros digitales) */}
                     <div className="grid grid-cols-2 gap-2">
                         <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
@@ -270,11 +297,16 @@ export default function ManagePhysicalBooksPage() {
                             Categorías ({createValues.categoryIds.length + (createValues.category ? 1 : 0)})
                         </Button>
                     </div>
-                    <div>
-                        <Label>PNF</Label>
-                        <select value={createValues.pnf} onChange={(e: any) => setCreateValues({ ...createValues, pnf: e.target.value })} name="pnf" className="p-2 rounded-lg border border-gray-300">
-                            {CATEGORIES.map((category, index) => <option key={index} value={category}>{category}</option>)}
-                        </select>
+                    <div className="flex flex-col gap-1">
+                        <Label>PNFs Vinculados ({createValues.pnfs.length})</Label>
+                        <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
+                            {createValues.pnfs.map((p: string) => (
+                                <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
+                            ))}
+                        </div>
+                        <Button type="button" variant="outline" onClick={() => setPnfModal(true)}>
+                            Asignar Áreas PNF
+                        </Button>
                     </div>
                     <div>
                         <Label>Año</Label>
@@ -306,6 +338,12 @@ export default function ManagePhysicalBooksPage() {
                     selectedIds={createValues.categoryIds}
                     onChange={(ids) => setCreateValues({ ...createValues, categoryIds: ids })}
                 />
+                <PnfSelectorModal
+                    isOpen={pnfModal}
+                    onClose={() => setPnfModal(false)}
+                    selectedPnfs={createValues.pnfs}
+                    onChange={(pnfsSelected) => setCreateValues({ ...createValues, pnfs: pnfsSelected })}
+                />
             </GenericModalContainer>
         }
 
@@ -322,6 +360,10 @@ export default function ManagePhysicalBooksPage() {
                         <Label>ISBN</Label>
                         <Input defaultValue={editValues.isbn} onChange={(e: any) => setEditValues({ ...editValues, isbn: e.target.value })} name="isbn" placeholder="1234567890"></Input>
                     </div>
+                    <div>
+                        <Label>Código de la Biblioteca</Label>
+                        <Input defaultValue={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name="code" placeholder="Ej: LIB-INF-001"></Input>
+                    </div>
                     {/* 💡 Selección múltiple de autores y categorías al editar */}
                     <div className="grid grid-cols-2 gap-2">
                         <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, select: true })}>
@@ -331,11 +373,16 @@ export default function ManagePhysicalBooksPage() {
                             Categorías ({editValues.categoryIds.length + (editValues.category ? 1 : 0)})
                         </Button>
                     </div>
-                    <div>
-                        <Label>PNF</Label>
-                        <select value={editValues.pnf} onChange={(e: any) => setEditValues({ ...editValues, pnf: e.target.value })} name="pnf" className="p-2 rounded-lg border border-gray-300">
-                            {CATEGORIES.map((category, index) => <option key={index} value={category}>{category}</option>)}
-                        </select>
+                    <div className="flex flex-col gap-1">
+                        <Label>PNFs Vinculados ({editValues.pnfs.length})</Label>
+                        <div className="flex flex-wrap gap-1 bg-gray-50 dark:bg-gray-950 p-2 border rounded-lg min-h-10">
+                            {editValues.pnfs.map((p: string) => (
+                                <span key={p} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded text-[10px] font-bold uppercase">{p}</span>
+                            ))}
+                        </div>
+                        <Button type="button" variant="outline" onClick={() => setPnfModal(true)}>
+                            Asignar Áreas PNF
+                        </Button>
                     </div>
                     <div>
                         <Label>Año</Label>
@@ -366,6 +413,12 @@ export default function ManagePhysicalBooksPage() {
                     onClose={() => setCategoryModal({ ...categoryModal, select: false })}
                     selectedIds={editValues.categoryIds}
                     onChange={(ids) => setEditValues({ ...editValues, categoryIds: ids })}
+                />
+                <PnfSelectorModal
+                    isOpen={pnfModal}
+                    onClose={() => setPnfModal(false)}
+                    selectedPnfs={editValues.pnfs}
+                    onChange={(pnfsSelected) => setEditValues({ ...editValues, pnfs: pnfsSelected })}
                 />
             </GenericModalContainer>}
 
@@ -423,7 +476,7 @@ export default function ManagePhysicalBooksPage() {
             title={copiesBook.title}
             onClose={() => setCopiesBook(null)}
             onChanged={() => {
-                fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${searchInput}`)
+                fetch(`/api/physical-book?limit=${limit}&pnf=${pnf}&genre=${category}&page=${page}&search=${appliedSearch}`)
                     .then(res => res.json())
                     .then((data: any) => setUseAllBooks(data.data))
             }}

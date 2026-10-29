@@ -43,7 +43,7 @@ export default function ManageItemsTable({ items, onDelete, onEdit }: any) {
                                 <div className="text-sm text-gray-500">ID: {item.id}</div>
                             </td>
 
-                            {/* ISBN */}
+                            {/* Código */}
                             <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
                                 <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                                     {item.code || 'N/A'}
@@ -135,7 +135,7 @@ export default function ManageItemsTable({ items, onDelete, onEdit }: any) {
 
                     <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
                         <div>
-                            <span className="font-medium text-gray-900">ISBN:</span>
+                            <span className="font-medium text-gray-900">Código:</span>
                             <div className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded mt-0.5">
                                 {book.code || 'N/A'}
                             </div>

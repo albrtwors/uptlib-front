@@ -43,6 +43,8 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
     const [quantity, setQuantity] = useState('1')
     const [codesText, setCodesText] = useState('')
     const [location, setLocation] = useState('')
+    const [codeFrom, setCodeFrom] = useState('')
+    const [codeTo, setCodeTo] = useState('')
 
     const [editId, setEditId] = useState<string | null>(null)
     const [editForm, setEditForm] = useState<{ code: string; status: CopyStatus; location: string; observations: string }>({
@@ -77,13 +79,21 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
             const res = await fetch(`${base}/${resourceId}/copies`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quantity, codes, location: location || undefined })
+                body: JSON.stringify({
+                    quantity,
+                    codes,
+                    location: location || undefined,
+                    codeFrom: codeFrom.trim() || undefined,
+                    codeTo: codeTo.trim() || undefined
+                })
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data?.message || 'No se pudieron agregar los ejemplares')
             setQuantity('1')
             setCodesText('')
             setLocation('')
+            setCodeFrom('')
+            setCodeTo('')
             await load()
             onChanged?.()
         } catch (err: any) {
@@ -159,6 +169,19 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
                 <Label>Códigos personalizados (opcional, separados por coma)</Label>
                 <Input value={codesText} onChange={(e: any) => setCodesText(e.target.value)} placeholder="XXX-XXXX-0001, ..." />
             </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+                <div>
+                    <Label>Rango desde (opcional)</Label>
+                    <Input value={codeFrom} onChange={(e: any) => setCodeFrom(e.target.value)} placeholder="Ej: LIB-INF-0001" />
+                </div>
+                <div>
+                    <Label>Rango hasta (opcional)</Label>
+                    <Input value={codeTo} onChange={(e: any) => setCodeTo(e.target.value)} placeholder="Ej: LIB-INF-0010" />
+                </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+                Si indicas un rango, los ejemplares se numerarán consecutivamente desde ese código. Los códigos personalizados tienen prioridad sobre el rango.
+            </p>
             <div className="mt-3">
                 <Button type="button" size="sm" onClick={addCopies} disabled={busy}>Agregar ejemplares</Button>
             </div>

@@ -10,11 +10,14 @@ import Label from "../form/Label"
 import Pagination from "../pagination/OwnPaginator"
 import Button from "@/components/ui/button/Button"
 import AuthorSelectorModal from "@/components/form/author/AuthorSelectorModal"
+import { usePnfs } from "@/hooks/pnfs/usePnfs"
+import { pnfNameOf } from "@/utils/pnf"
 
 export default function BooksPage() {
     const pathname = usePathname()
     const router = useRouter()
 
+    const [searchInput, setSearchInput] = useState('')
     const [search, setSearch] = useState('')
     const [limit, setLimit] = useState(10)
     const [pnf, setPnf] = useState('')
@@ -37,11 +40,7 @@ export default function BooksPage() {
         authorIds: authorFilterIds
     })
 
-    const pnfOptions = [
-        "GENERAL", "INFORMATICA", "ELECTRONICA", "MANTENIMIENTO",
-        "CONTADURIA", "ADMINISTRACION", "ELECTRICIDAD",
-        "MECANICA", "INSTRUMENTACION", "TELECOMUNICACIONES"
-    ]
+    const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
 
     useEffect(() => {
         const params = new URLSearchParams()
@@ -98,15 +97,31 @@ export default function BooksPage() {
                 {/* Buscador de Texto */}
                 <div className="w-full sm:flex-1">
                     <Label>Nombre del libro</Label>
-                    <Input
-                        className="w-full"
-                        placeholder="Buscar libros..."
-                        defaultValue={search}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            setSearch(e.target.value)
-                            setPage(1)
-                        }}
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            className="w-full"
+                            placeholder="Buscar libros..."
+                            value={searchInput}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    setPage(1)
+                                    setSearch(searchInput)
+                                }
+                            }}
+                        />
+                        <Button
+                            type="button"
+                            className="h-11 whitespace-nowrap px-5"
+                            onClick={() => {
+                                setPage(1)
+                                setSearch(searchInput)
+                            }}
+                        >
+                            Buscar
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Filtro por PNF (Select tradicional) */}
@@ -121,8 +136,8 @@ export default function BooksPage() {
                         }}
                     >
                         <option value="">TODOS LOS PNF</option>
-                        {pnfOptions.map((option, key) => (
-                            <option key={key} value={option}>{option}</option>
+                        {(Array.isArray(pnfOptions) ? pnfOptions : []).map((p: any) => (
+                            <option key={p.id} value={p.name}>{p.name}</option>
                         ))}
                     </select>
                 </div>
@@ -160,7 +175,7 @@ export default function BooksPage() {
                         routepdf={book.routepdf}
                         key={book.id}
                         id={book.id}
-                        pnf={book.pnfs?.map((p: any) => p.pnf).join(', ') || 'GENERAL'}
+                        pnf={book.pnfs?.map(pnfNameOf).filter(Boolean).join(', ') || 'GENERAL'}
                         title={book.title}
                         description={book.description}
                     />

@@ -7,6 +7,8 @@ type SidebarContextType = {
   isHovered: boolean;
   activeItem: string | null;
   openSubmenu: string | null;
+  linkFilter: string;
+  setLinkFilter: (filter: string) => void;
   toggleSidebar: () => void;
   toggleMobileSidebar: () => void;
   setIsHovered: (isHovered: boolean) => void;
@@ -33,6 +35,7 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [linkFilter, setLinkFilter] = useState("");
 
   useEffect(() => {
     const handleResize = () => {
@@ -71,6 +74,8 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
         isHovered,
         activeItem,
         openSubmenu,
+        linkFilter,
+        setLinkFilter,
         toggleSidebar,
         toggleMobileSidebar,
         setIsHovered,

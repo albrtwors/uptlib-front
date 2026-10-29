@@ -14,6 +14,9 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                                 ISBN
                             </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
+                                Código
+                            </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                                 Año
                             </th>
@@ -53,6 +56,13 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
                                     <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                                         {book.isbn || 'N/A'}
+                                    </span>
+                                </td>
+
+                                {/* Código de la biblioteca */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden md:table-cell">
+                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                                        {book.code || 'N/A'}
                                     </span>
                                 </td>
 
@@ -175,6 +185,12 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 </span>
                             </div>
                             <div>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Código</span>
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded mt-0.5">
+                                    {book.code || 'N/A'}
+                                </span>
+                            </div>
+                            <div>
                                 <span className="block text-xs font-medium text-gray-400 uppercase">Año</span>
                                 <span className="text-gray-900 font-medium block mt-0.5">{book.yearOfPublication || 'N/A'}</span>
                             </div>
@@ -198,6 +214,17 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 <div>
                                     <span className="block text-xs font-medium text-gray-400 uppercase">Categorías</span>
                                     <span className="text-gray-900 text-xs font-medium block mt-0.5">{(book.categories || []).map((c: any) => c.name).join(', ') || 'N/A'}</span>
+                                </div>
+                                <div className="col-span-2">
+                                    <span className="block text-xs font-medium text-gray-400 uppercase">PNFs</span>
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                        {(book.pnfs || []).map((p: any) => (
+                                            <span key={p.id} className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase bg-blue-100 text-blue-800 rounded">
+                                                {p.name}
+                                            </span>
+                                        ))}
+                                        {!book.pnfs?.length && <span className="text-xs text-gray-500">N/A</span>}
+                                    </div>
                                 </div>
                             </div>
                         </div>
