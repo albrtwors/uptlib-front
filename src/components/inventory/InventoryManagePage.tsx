@@ -28,11 +28,45 @@ import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
 import { useBulkActions } from "@/hooks/lib/useBulkActions"
 import { itemToRecord } from "@/utils/jsonRecords"
+import { formCacheKey, readFormCache, useCachedState } from "@/hooks/lib/useCachedForm"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
     { ssr: false }
 );
+
+type ItemForm = {
+    name: string
+    code: string
+    description: string
+    stock: string
+    typeName: string
+    typeId: string
+    authorIds: string[]
+    categoryIds: string[]
+}
+
+const emptyItemForm = (): ItemForm => ({
+    name: '',
+    code: '',
+    description: '',
+    stock: '',
+    typeName: '',
+    typeId: '',
+    authorIds: [],
+    categoryIds: []
+})
+
+const itemToForm = (item: any): ItemForm => ({
+    name: item?.name || '',
+    code: item?.code || '',
+    description: item?.description || '',
+    stock: item?.totalStock?.toString() || '0',
+    typeName: item?.type?.name || '',
+    typeId: item?.type?.id || '',
+    authorIds: (item?.authors || []).map((a: any) => a.id),
+    categoryIds: (item?.categories || []).map((c: any) => c.id)
+})
 
 export const useItems = ({ search, limit }: any) => {
     const [items, setItems] = useState([])
@@ -62,21 +96,41 @@ export default function InventoryManagePage({ }) {
     const router = useRouter()
 
     const { items, setItems, getItems } = useItems({ search, limit })
-    const { createModal, setCreateModal, editModal, setEditModal, deleteModal, setDeleteModal } = useManageModals()
-    const [selectedItem, setSelectedItem]: any = useState(null)
+    const { deleteModal, setDeleteModal } = useManageModals()
+    // 💡 El alta y la edición se guardan en el navegador: si la página se recarga
+    // o se cierra el portátil, el modal reaparece con lo que se llevaba escrito.
+    const {
+        value: selectedItem,
+        setValue: setSelectedItem
+    } = useCachedState<any>(formCacheKey('inventory-selected'), () => null)
+    const {
+        value: formOpen,
+        setValue: setFormOpen
+    } = useCachedState<'create' | 'edit' | null>(formCacheKey('inventory-open'), () => null)
+    const {
+        value: createValues,
+        setValue: setCreateValues,
+        clear: clearCreateDraft,
+        restored: createRestored
+    } = useCachedState(formCacheKey('inventory-create'), emptyItemForm)
     const [copiesItem, setCopiesItem]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
     // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
-    const [createValues, setCreateValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [] as string[], categoryIds: [] as string[] })
-    const [editValues, setEditValues] = useState({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [] as string[], categoryIds: [] as string[] })
+    const editCacheKey = formCacheKey('inventory-edit', selectedItem?.id ?? '')
+    const {
+        value: editValues,
+        setValue: setEditValues,
+        clear: clearEditDraft,
+        restored: editRestored
+    } = useCachedState(editCacheKey, emptyItemForm)
 
     // 💡 Estados de los modales de selección múltiple de autores y categorías
     const [authorModal, setAuthorModal] = useState({ create: false, edit: false })
     const [categoryModal, setCategoryModal] = useState({ create: false, edit: false })
 
     const { handleCreateType, handleDeleteType, handleCreateSubmit, handleDeleteSubmit, handleEditSubmit } = useHttpRequests({
-        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal, createValues, editValues
+        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal, createValues, editValues, clearCreateDraft, clearEditDraft, setEditValues
     })
 
     const reload = (targetPage = page) => getItems({ search, limit, page: targetPage, type }).then((res: any) => {
@@ -97,25 +151,11 @@ export default function InventoryManagePage({ }) {
     // Sincronizar el formulario de edición cuando seleccionas un item de la tabla
     useEffect(() => {
         if (selectedItem) {
-            setEditValues({
-                name: selectedItem.name || '',
-                code: selectedItem.code || '',
-                description: selectedItem.description || '',
-                stock: selectedItem.totalStock?.toString() || '0',
-                typeName: selectedItem.type?.name || '',
-                typeId: selectedItem.type?.id || '', // 💡 Extraemos el ID real correspondiente al tipo
-                authorIds: (selectedItem.authors || []).map((a: any) => a.id),
-                categoryIds: (selectedItem.categories || []).map((c: any) => c.id)
-            })
+            // 💡 Un borrador guardado en el navegador manda sobre los datos de la BD
+            if (readFormCache<ItemForm>(editCacheKey)) return
+            setEditValues(itemToForm(selectedItem))
         }
     }, [selectedItem])
-
-    // Limpiar el estado de creación cada vez que se decide añadir un nuevo item
-    useEffect(() => {
-        if (createModal) {
-            setCreateValues({ name: '', code: '', description: '', stock: '', typeName: '', typeId: '', authorIds: [], categoryIds: [] })
-        }
-    }, [createModal])
 
     useEffect(() => {
         const params = new URLSearchParams()
@@ -161,7 +201,7 @@ export default function InventoryManagePage({ }) {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => setCreateModal(true)}>Añadir Item</Button>
+                <Button type="button" onClick={() => { setSelectedItem(null); setFormOpen('create') }}>Añadir Item</Button>
                 <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
             </>}
         >
@@ -197,29 +237,37 @@ export default function InventoryManagePage({ }) {
         />
 
         {/* MODAL CREAR */}
-        {createModal && <GenericModalContainer>
+        {formOpen === 'create' && <GenericModalContainer>
             <div>
-                <div className="flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
+                <div className="flex justify-between items-center">
+                    <Button type="button" size="sm" variant="outline" onClick={clearCreateDraft}>Limpiar formulario</Button>
+                    <Button type="button" onClick={() => setFormOpen(null)}>X</Button>
+                </div>
+                {createRestored && (
+                    <p className="text-xs text-amber-700 mb-2">
+                        Recuperamos el borrador que tenías en este navegador. Pulsa «Limpiar formulario» para empezar de cero.
+                    </p>
+                )}
 
                 <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-2 pb-14">
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
-                        <Input name='name' defaultValue={createValues.name} onChange={(e: any) => setCreateValues({ ...createValues, name: e.target.value })} placeholder="Nombre"></Input>
+                        <Input name='name' value={createValues.name} onChange={(e: any) => setCreateValues({ ...createValues, name: e.target.value })} placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Código</Label>
-                        <Input name='code' defaultValue={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} placeholder="Código"></Input>
+                        <Input name='code' value={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} placeholder="Código"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Descripcion</Label>
-                        <Input name='description' defaultValue={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })} placeholder="Descripcion"></Input>
+                        <Input name='description' value={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })} placeholder="Descripcion"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label>Stock</Label>
-                        <Input name='stock' type='number' defaultValue={createValues.stock} onChange={(e: any) => setCreateValues({ ...createValues, stock: e.target.value })} placeholder="Cantidad..."></Input>
+                        <Input name='stock' type='number' value={createValues.stock} onChange={(e: any) => setCreateValues({ ...createValues, stock: e.target.value })} placeholder="Cantidad..."></Input>
                     </div>
 
                     {/* 💡 Enviamos un objeto unificado con name e id mapeado desde createValues */}
@@ -257,28 +305,36 @@ export default function InventoryManagePage({ }) {
         </GenericModalContainer>}
 
         {/* MODAL EDITAR */}
-        {(editModal && selectedItem) && <GenericModalContainer>
+        {(formOpen === 'edit' && selectedItem) && <GenericModalContainer>
             <div>
-                <div className="flex justify-end"><Button onClick={() => setEditModal(false)}>X</Button></div>
+                <div className="flex justify-between items-center">
+                    <Button type="button" size="sm" variant="outline" onClick={() => { clearEditDraft(); setEditValues(itemToForm(selectedItem)) }}>Descartar cambios</Button>
+                    <Button type="button" onClick={() => setFormOpen(null)}>X</Button>
+                </div>
+                {editRestored && (
+                    <p className="text-xs text-amber-700 mb-2">
+                        Tenías cambios sin guardar en este navegador para «{selectedItem?.name}». «Descartar cambios» recarga el formulario con los datos actuales.
+                    </p>
+                )}
                 <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-2 pb-14">
                     <div className="flex flex-col">
                         <Label>Nombre</Label>
-                        <Input defaultValue={editValues.name} onChange={(e: any) => setEditValues({ ...editValues, name: e.target.value })} name='name' placeholder="Nombre"></Input>
+                        <Input value={editValues.name} onChange={(e: any) => setEditValues({ ...editValues, name: e.target.value })} name='name' placeholder="Nombre"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Código</Label>
-                        <Input defaultValue={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name='code' placeholder="Código"></Input>
+                        <Input value={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name='code' placeholder="Código"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label isRequired={false}>Descripcion</Label>
-                        <Input defaultValue={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })} name='description' placeholder="Descripcion"></Input>
+                        <Input value={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })} name='description' placeholder="Descripcion"></Input>
                     </div>
 
                     <div className="flex flex-col">
                         <Label>Stock</Label>
-                        <Input defaultValue={editValues.stock} onChange={(e: any) => setEditValues({ ...editValues, stock: e.target.value })} name='stock' type='number' placeholder="Cantidad..."></Input>
+                        <Input value={editValues.stock} onChange={(e: any) => setEditValues({ ...editValues, stock: e.target.value })} name='stock' type='number' placeholder="Cantidad..."></Input>
                     </div>
 
                     {/* 💡 Pasamos la estructura completa requerida para alimentar el useEffect del buscador interno */}
@@ -335,8 +391,8 @@ export default function InventoryManagePage({ }) {
                 setSelectedItem(item)
             }}
             onEdit={(item: any) => {
-                setEditModal(true)
                 setSelectedItem(item)
+                setFormOpen('edit')
             }}
             onCopies={(item: any) => setCopiesItem(item)}
             items={items}></ManageItemsTable>
@@ -363,6 +419,7 @@ export default function InventoryManagePage({ }) {
             kind="inventory"
             resourceId={copiesItem.id}
             title={copiesItem.name}
+            parentCode={copiesItem.code}
             onClose={() => setCopiesItem(null)}
             onChanged={() => reload()}
         />}
@@ -405,7 +462,7 @@ export default function InventoryManagePage({ }) {
     </div>
 }
 
-const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages, createValues, editValues }: any) => {
+const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages, createValues, editValues, clearCreateDraft, clearEditDraft, setEditValues }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const data = new FormData(e.currentTarget)
@@ -427,6 +484,7 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
         }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
+                clearCreateDraft()
                 getItems({ search, limit, type }).then((res: any) => {
                     setItems(res.data)
                     totalPages.current = res.totalPages
@@ -455,6 +513,8 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
         }).then(res => res.json()).then(data => {
             const result = handleResponses(data)
             if (result) {
+                clearEditDraft()
+                setEditValues(itemToForm(selectedItem))
                 getItems({ search, limit, page, type }).then((res: any) => {
                     setItems(res.data)
                     totalPages.current = res.totalPages

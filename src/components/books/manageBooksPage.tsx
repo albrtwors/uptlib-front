@@ -25,6 +25,7 @@ import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
 import { useBulkActions } from "@/hooks/lib/useBulkActions"
 import { digitalBookToRecord } from "@/utils/jsonRecords"
+import { formCacheKey, readFormCache, useCachedState } from "@/hooks/lib/useCachedForm"
 
 export const useManageBooks = ({ search, limit, page, pnf, authorIds }: any) => {
     const [books, setUseAllBooks]: any = useState([])
@@ -45,7 +46,7 @@ export const useManageBooks = ({ search, limit, page, pnf, authorIds }: any) => 
     return { books, setUseAllBooks, getBooks }
 }
 
-const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, createValues, editValues, createModal }: any) => {
+const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, createValues, editValues, createModal, clearCreateDraft, clearEditDraft }: any) => {
 
     const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -91,8 +92,9 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, se
             const result = handleResponses(response);
             if (result) {
                 formElement.reset();
-                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
+                clearCreateDraft();
                 setCreateModal(false);
+                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
             }
 
         } catch (err) {
@@ -143,8 +145,9 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, se
             const data = await res.json();
             const result = handleResponses(data);
             if (result) {
-                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
+                clearEditDraft();
                 setEditModal(false);
+                getBooks({ search, limit, page, pnf, authorIds: authorFilterIds }).then((res: any) => setBooks(res.data));
             }
 
         } catch (err) {
@@ -166,9 +169,31 @@ const useHttpSubmit = ({ search, getBooks, limit, page, pnf, authorFilterIds, se
     return { handleDeleteSubmit, handleEditSubmit, handleCreateSubmit }
 }
 
+type BookForm = { title: string; description: string; pnfs: string[]; authorIds: string[]; pdfUrl: string }
+
+const emptyCreateBookForm = (): BookForm => ({ title: "", description: "", pnfs: ["GENERAL"], authorIds: [], pdfUrl: "" })
+const emptyEditBookForm = (): BookForm => ({ title: "", description: "", pnfs: [], authorIds: [], pdfUrl: "" })
+
+const bookToForm = (book: any): BookForm => {
+    const externalUrl = book?.routepdf?.startsWith('http') && !book.routepdf.includes('supabase') ? book.routepdf : ''
+    return {
+        title: book?.title || "",
+        description: book?.description || "",
+        pnfs: book?.pnfs?.map(pnfNameOf).filter(Boolean) || [],
+        authorIds: book?.authors?.map((a: any) => a.id) || [],
+        pdfUrl: externalUrl
+    }
+}
+
 export default function ManageBooksPage() {
-    const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
-    const [selectedBook, setSelectedBook]: any = useState(null)
+    const { setDeleteModal, deleteModal } = useManageModals()
+    // 💡 Alta y edición se guardan en el navegador: un refresco no tira lo escrito
+    const {
+        value: selectedBook,
+        setValue: setSelectedBook
+    } = useCachedState<any>(formCacheKey('book-selected'), () => null)
+    const { value: createModal, setValue: setCreateModal } = useCachedState<boolean>(formCacheKey('book-create-open'), () => false)
+    const { value: editModal, setValue: setEditModal } = useCachedState<boolean>(formCacheKey('book-edit-open'), () => false)
     const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
 
     const [isAuthorModalOpen, setIsAuthorModalOpen]: any = useState(false)
@@ -176,8 +201,19 @@ export default function ManageBooksPage() {
 
     const [modalContext, setModalContext] = useState<'filter' | 'form'>('form')
 
-    const [createValues, setCreateValues]: any = useState({ title: "", description: "", pnfs: ["GENERAL"] as string[], authorIds: [] as string[], pdfUrl: "" });
-    const [editValues, setEditValues]: any = useState({ title: "", description: "", pnfs: [] as string[], authorIds: [] as string[], pdfUrl: "" });
+    const {
+        value: createValues,
+        setValue: setCreateValues,
+        clear: clearCreateDraft,
+        restored: createRestored
+    } = useCachedState<BookForm>(formCacheKey('book-create'), emptyCreateBookForm)
+    const editCacheKey = formCacheKey('book-edit', selectedBook?.id ?? '')
+    const {
+        value: editValues,
+        setValue: setEditValues,
+        clear: clearEditDraft,
+        restored: editRestored
+    } = useCachedState<BookForm>(editCacheKey, emptyEditBookForm)
 
     const pathname = usePathname();
     const router = useRouter();
@@ -196,29 +232,20 @@ export default function ManageBooksPage() {
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit, page, pnf: pnfFilter, authorIds: authorFilterIds })
     const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
     const { handleCreateSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({
-        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, authorFilterIds, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, createValues, editValues, createModal
+        setBooks: setUseAllBooks, getBooks, selectedBook, limit, page, pnf: pnfFilter, authorFilterIds, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, createValues, editValues, createModal, clearCreateDraft, clearEditDraft
     })
 
     useEffect(() => {
-        if (selectedBook) {
-            const defaultUrl = selectedBook.routepdf?.startsWith('http') && !selectedBook.routepdf.includes('supabase') ? selectedBook.routepdf : '';
-            setEditValues({
-                title: selectedBook.title || "",
-                description: selectedBook.description || "",
-                pnfs: selectedBook.pnfs?.map(pnfNameOf).filter(Boolean) || [],
-                authorIds: selectedBook.authors?.map((a: any) => a.id) || [],
-                pdfUrl: defaultUrl
-            });
-            if (defaultUrl) setUploadMode("url");
-            else setUploadMode("file");
-        }
+        if (!selectedBook) return;
+        // 💡 Un borrador del navegador manda sobre los datos traídos de la BD
+        if (readFormCache<BookForm>(editCacheKey)) return;
+        setEditValues(bookToForm(selectedBook));
+        setUploadMode(selectedBook.routepdf?.startsWith('http') && !selectedBook.routepdf.includes('supabase') ? "url" : "file");
     }, [selectedBook]);
 
     useEffect(() => {
-        if (createModal) {
-            setCreateValues({ title: "", description: "", pnfs: ["GENERAL"], authorIds: [], pdfUrl: "" });
-            setUploadMode("file");
-        }
+        if (!createModal) return;
+        setUploadMode(createValues.pdfUrl ? "url" : "file");
     }, [createModal]);
 
     const handleCreateAIExtract = (data: any) => {
@@ -425,17 +452,25 @@ export default function ManageBooksPage() {
             {/* MODAL CREAR */}
             {createModal &&
                 <GenericModalContainer>
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between gap-2">
+                        {createRestored ? (
+                            <Button type="button" size="sm" variant="outline" onClick={clearCreateDraft}>Limpiar formulario</Button>
+                        ) : <span />}
                         <Button type="button" onClick={() => setCreateModal(false)}>X</Button>
                     </div>
+                    {createRestored && (
+                        <p className="text-xs text-amber-700 mb-2">
+                            Recuperamos el borrador que quedó guardado en este navegador.
+                        </p>
+                    )}
                     <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full mb-4">
                         <div>
                             <Label>Título del libro</Label>
-                            <Input name="title" placeholder="Mago de Oz" defaultValue={createValues.title} onChange={(e: any) => setCreateValues({ ...createValues, title: e.target.value })}></Input>
+                            <Input name="title" placeholder="Mago de Oz" value={createValues.title} onChange={(e: any) => setCreateValues({ ...createValues, title: e.target.value })}></Input>
                         </div>
                         <div>
                             <Label isRequired={false}>Descripción</Label>
-                            <Input name="description" placeholder="Las aventuras de Dorothy..." defaultValue={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })}></Input>
+                            <Input name="description" placeholder="Las aventuras de Dorothy..." value={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })}></Input>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -470,7 +505,7 @@ export default function ManageBooksPage() {
                             {uploadMode === "file" ? (
                                 <Input type="file" name="pdf"></Input>
                             ) : (
-                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" defaultValue={createValues.pdfUrl} onChange={(e: any) => setCreateValues({ ...createValues, pdfUrl: e.target.value })}></Input>
+                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" value={createValues.pdfUrl} onChange={(e: any) => setCreateValues({ ...createValues, pdfUrl: e.target.value })}></Input>
                             )}
                         </div>
                         <Button type="submit">Guardar</Button>
@@ -483,17 +518,25 @@ export default function ManageBooksPage() {
             {/* MODAL EDITAR */}
             {(editModal && selectedBook) &&
                 <GenericModalContainer>
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between gap-2">
+                        {editRestored ? (
+                            <Button type="button" size="sm" variant="outline" onClick={() => { clearEditDraft(); setEditValues(bookToForm(selectedBook)) }}>Descartar cambios</Button>
+                        ) : <span />}
                         <Button type="button" onClick={() => setEditModal(false)}>X</Button>
                     </div>
+                    {editRestored && (
+                        <p className="text-xs text-amber-700 mb-2">
+                            Tenías cambios sin guardar en este navegador para «{selectedBook?.title}».
+                        </p>
+                    )}
                     <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-3 max-w-md mx-auto w-full mb-4">
                         <div>
                             <Label>Título del libro</Label>
-                            <Input name="title" placeholder="Mago de Oz" defaultValue={editValues.title} onChange={(e: any) => setEditValues({ ...editValues, title: e.target.value })}></Input>
+                            <Input name="title" placeholder="Mago de Oz" value={editValues.title} onChange={(e: any) => setEditValues({ ...editValues, title: e.target.value })}></Input>
                         </div>
                         <div>
                             <Label isRequired={false}>Descripción</Label>
-                            <Input name="description" placeholder="Las aventuras de Dorothy..." defaultValue={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })}></Input>
+                            <Input name="description" placeholder="Las aventuras de Dorothy..." value={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })}></Input>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -528,7 +571,7 @@ export default function ManageBooksPage() {
                             {uploadMode === "file" ? (
                                 <Input type="file" name="pdf"></Input>
                             ) : (
-                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" defaultValue={editValues.pdfUrl} onChange={(e: any) => setEditValues({ ...editValues, pdfUrl: e.target.value })}></Input>
+                                <Input type="url" name="pdfUrl" placeholder="https://ejemplo.com/libro.pdf" value={editValues.pdfUrl} onChange={(e: any) => setEditValues({ ...editValues, pdfUrl: e.target.value })}></Input>
                             )}
                         </div>
                         <Button type="submit">Guardar</Button>

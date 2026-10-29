@@ -23,6 +23,7 @@ import SearchField from "@/components/form/SearchField"
 import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
 import { useBulkActions } from "@/hooks/lib/useBulkActions"
+import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 import { physicalBookToRecord } from "@/utils/jsonRecords"
 import RecordsWorkspaceModal from "./records/RecordsWorkspaceModal"
 
@@ -32,13 +33,19 @@ const ExportPDFButton = dynamic(
 )
 
 export default function ManagePhysicalBooksPage() {
-    const { setCreateModal, setDeleteModal, createModal, deleteModal } = useManageModals()
+    const { setDeleteModal, deleteModal } = useManageModals()
     const [authorModal, setAuthorModal] = useState<any>({ create: false, delete: false })
     const [categoryModal, setCategoryModal] = useState<any>({ create: false, delete: false })
 
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [copiesBook, setCopiesBook]: any = useState(null)
-    const [workspace, setWorkspace]: any = useState(null)
+    // 💡 La mesa de trabajo se guarda en el navegador: si el usuario refresca la
+    // página o se le cierra el portátil, el modal reaparece con sus borradores.
+    const {
+        value: workspace,
+        setValue: setWorkspace,
+        clear: clearWorkspaceCache
+    } = useCachedState<any>(formCacheKey('physical-books-workspace-open'), () => null)
 
     const pathname = usePathname();
     const router = useRouter();
@@ -89,7 +96,7 @@ export default function ManagePhysicalBooksPage() {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => setCreateModal(true)}>Añadir libros</Button>
+                <Button type="button" onClick={() => setWorkspace({ mode: 'create', seeds: [] })}>Añadir libros</Button>
                 <ExportPDFButton items={books} title={'Reporte de Libros Fisicos'}></ExportPDFButton>
             </>}
         >
@@ -224,14 +231,11 @@ export default function ManagePhysicalBooksPage() {
         </div>
 
         {/* MESA DE TRABAJO: crear, editar en lote e importar/exportar JSON */}
-        {(workspace || createModal) &&
+        {workspace &&
             <RecordsWorkspaceModal
-                mode={workspace?.mode ?? 'create'}
-                seeds={workspace?.seeds ?? []}
-                onClose={() => {
-                    setWorkspace(null)
-                    setCreateModal(false)
-                }}
+                mode={workspace.mode ?? 'create'}
+                seeds={workspace.seeds ?? []}
+                onClose={clearWorkspaceCache}
                 onSaved={() => reload()}
             />}
 
@@ -287,6 +291,7 @@ export default function ManagePhysicalBooksPage() {
             kind="physical-book"
             resourceId={copiesBook.id}
             title={copiesBook.title}
+            parentCode={copiesBook.code}
             onClose={() => setCopiesBook(null)}
             onChanged={() => reload()}
         />}

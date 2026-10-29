@@ -5,6 +5,7 @@ import Button from "@/components/ui/button/Button"
 import Input from "@/components/form/input/InputField"
 import Label from "@/components/form/Label"
 import GenericModalContainer from "@/components/modals/GenericModalContainer"
+import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 
 export type CopyStatus = "DISPONIBLE" | "PRESTADO" | "MANTENIMIENTO" | "BAJA"
 
@@ -16,6 +17,16 @@ export interface Copy {
     observations?: string | null
     createdAt?: string
 }
+
+interface CopiesDraft {
+    quantity: string
+    codesText: string
+    location: string
+    codeFrom: string
+    codeTo: string
+}
+
+const emptyCopiesDraft = (): CopiesDraft => ({ quantity: '1', codesText: '', location: '', codeFrom: '', codeTo: '' })
 
 const COPY_STATUS: CopyStatus[] = ["DISPONIBLE", "PRESTADO", "MANTENIMIENTO", "BAJA"]
 
@@ -30,21 +41,27 @@ interface CopiesManagerProps {
     kind: "physical-book" | "inventory"
     resourceId: string
     title: string
+    /** Código asignado por la biblioteca al libro o artículo: origen del prefijo de los ejemplares */
+    parentCode?: string | null
     onClose: () => void
     onChanged?: () => void
 }
 
-export default function CopiesManager({ kind, resourceId, title, onClose, onChanged }: CopiesManagerProps) {
+export default function CopiesManager({ kind, resourceId, title, parentCode, onClose, onChanged }: CopiesManagerProps) {
     const [copies, setCopies] = useState<Copy[]>([])
     const [loading, setLoading] = useState(true)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
 
-    const [quantity, setQuantity] = useState('1')
-    const [codesText, setCodesText] = useState('')
-    const [location, setLocation] = useState('')
-    const [codeFrom, setCodeFrom] = useState('')
-    const [codeTo, setCodeTo] = useState('')
+    // 💡 El lote de nuevos ejemplares se guarda en el navegador mientras se escribe
+    const {
+        value: draft,
+        setValue: setDraft,
+        clear: clearDraft,
+        restored: draftRestored
+    } = useCachedState<CopiesDraft>(formCacheKey('copies', kind, resourceId), emptyCopiesDraft)
+    const { quantity, codesText, location, codeFrom, codeTo } = draft
+    const patchDraft = (changes: Partial<CopiesDraft>) => setDraft((prev) => ({ ...prev, ...changes }))
 
     const [editId, setEditId] = useState<string | null>(null)
     const [editForm, setEditForm] = useState<{ code: string; status: CopyStatus; location: string; observations: string }>({
@@ -55,6 +72,19 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
     })
 
     const base = `/api/${kind}`
+
+    const copyBase = (parentCode ?? '').trim().toUpperCase().replace(/\s+/g, '-')
+    const highestNumber = copies.reduce((highest, copy) => {
+        const match = /(\d+)$/.exec(copy.code)
+        if (!match) return highest
+        const parsed = parseInt(match[1], 10)
+        return Number.isNaN(parsed) ? highest : Math.max(highest, parsed)
+    }, 0)
+    const requestedQuantity = Math.max(0, parseInt(quantity, 10) || 0)
+    const expectedCodes = Array.from({ length: requestedQuantity }, (_, i) => {
+        const n = highestNumber + i + 1
+        return `${copyBase}-${String(n).padStart(Math.max(4, `${n}`.length), '0')}`
+    })
 
     const load = async () => {
         setLoading(true)
@@ -89,11 +119,7 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data?.message || 'No se pudieron agregar los ejemplares')
-            setQuantity('1')
-            setCodesText('')
-            setLocation('')
-            setCodeFrom('')
-            setCodeTo('')
+            clearDraft()
             await load()
             onChanged?.()
         } catch (err: any) {
@@ -155,30 +181,53 @@ export default function CopiesManager({ kind, resourceId, title, onClose, onChan
         {error && <div className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</div>}
 
         <div className="rounded-lg border border-gray-200 p-3 mb-3">
+            {draftRestored && (
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5">
+                    <span className="text-xs text-amber-800">Se restauró el lote sin agregar de este navegador.</span>
+                    <Button type="button" size="sm" variant="outline" onClick={clearDraft}>Descartar</Button>
+                </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
                 <div>
                     <Label>Cantidad</Label>
-                    <Input type="number" min="1" value={quantity} onChange={(e: any) => setQuantity(e.target.value)} />
+                    <Input type="number" min="1" value={quantity} onChange={(e: any) => patchDraft({ quantity: e.target.value })} />
                 </div>
                 <div>
                     <Label>Ubicación (opcional)</Label>
-                    <Input value={location} onChange={(e: any) => setLocation(e.target.value)} placeholder="Estante..." />
+                    <Input value={location} onChange={(e: any) => patchDraft({ location: e.target.value })} placeholder="Estante..." />
                 </div>
             </div>
             <div className="mt-2">
                 <Label>Códigos personalizados (opcional, separados por coma)</Label>
-                <Input value={codesText} onChange={(e: any) => setCodesText(e.target.value)} placeholder="XXX-XXXX-0001, ..." />
+                <Input value={codesText} onChange={(e: any) => patchDraft({ codesText: e.target.value })} placeholder="XXX-XXXX-0001, ..." />
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2">
                 <div>
                     <Label>Rango desde (opcional)</Label>
-                    <Input value={codeFrom} onChange={(e: any) => setCodeFrom(e.target.value)} placeholder="Ej: LIB-INF-0001" />
+                    <Input value={codeFrom} onChange={(e: any) => patchDraft({ codeFrom: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + 1).padStart(4, '0')}`} />
                 </div>
                 <div>
                     <Label>Rango hasta (opcional)</Label>
-                    <Input value={codeTo} onChange={(e: any) => setCodeTo(e.target.value)} placeholder="Ej: LIB-INF-0010" />
+                    <Input value={codeTo} onChange={(e: any) => patchDraft({ codeTo: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + requestedQuantity).padStart(4, '0')}`} />
                 </div>
             </div>
+            {copyBase ? (
+                <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <p className="text-xs text-gray-600">
+                        Los ejemplares heredan el código del recurso: <span className="font-mono font-semibold text-gray-800">{copyBase}</span>
+                    </p>
+                    {!codesText.trim() && !codeFrom.trim() && requestedQuantity > 0 && (
+                        <p className="text-xs text-gray-600 mt-1">
+                            Se generará la numeración continuando la existente:{" "}
+                            <span className="font-mono">{expectedCodes.slice(0, 5).join(", ")}{expectedCodes.length > 5 ? "…" : ""}</span>
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <p className="text-xs text-amber-600 mt-2">
+                    El recurso no tiene código asignado: los ejemplares usarán un prefijo generado desde el ISBN o el identificador.
+                </p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
                 Si indicas un rango, los ejemplares se numerarán consecutivamente desde ese código. Los códigos personalizados tienen prioridad sobre el rango.
             </p>

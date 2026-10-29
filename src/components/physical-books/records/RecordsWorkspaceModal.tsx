@@ -12,6 +12,7 @@ import PhysicalBookFormChatbot from "@/components/chatbot/physical-book/Physical
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { bulkUpsertPhysicalBooks } from "@/hooks/lib/useBulkActions"
+import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 import {
     downloadJson,
     parseJsonText,
@@ -93,7 +94,12 @@ interface RecordsWorkspaceModalProps {
  * importa/exporta JSON y guarda todo en un único lote contra /physical-book/bulk.
  */
 export default function RecordsWorkspaceModal({ mode, seeds = [], onClose, onSaved }: RecordsWorkspaceModalProps) {
-    const [drafts, setDrafts] = useState<Draft[]>(() => mode === 'edit' ? seeds.map(draftFromBook) : [blankDraft()])
+    const seedIds = seeds.map((seed: any) => `${seed?.id ?? ''}`).join(',')
+    const cacheKey = formCacheKey('physical-books-workspace', mode, seedIds)
+    const { value: drafts, setValue: setDrafts, clear: clearDrafts, restored } = useCachedState<Draft[]>(
+        cacheKey,
+        () => mode === 'edit' ? seeds.map(draftFromBook) : [blankDraft()]
+    )
     const [activeKey, setActiveKey] = useState<string>(() => drafts[0]?.key ?? '')
     const [authorModal, setAuthorModal] = useState(false)
     const [categoryModal, setCategoryModal] = useState(false)
@@ -199,7 +205,10 @@ export default function RecordsWorkspaceModal({ mode, seeds = [], onClose, onSav
             setFailed(errors)
             if (handleResponses(response)) {
                 onSaved()
-                if (errors.length === 0) onClose()
+                if (errors.length === 0) {
+                    clearDrafts()
+                    onClose()
+                }
                 // 💡 Si el lote terminó en parte mal, deja sobre la mesa sólo los
                 // registros fallidos para corregirlos y reintentar sin duplicar los buenos.
                 else setDrafts((prev) => prev.filter((draft, index) => !errors.some((e: any) => e.index === index)))
@@ -239,6 +248,15 @@ export default function RecordsWorkspaceModal({ mode, seeds = [], onClose, onSav
             Prepara varios registros y guárdalos en un solo lote. Los registros con ID actualizan el libro existente; sin ID, se crean.
         </p>
 
+        {restored && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <span className="text-xs text-amber-800">
+                    Se restauró el borrador guardado en este navegador. Puedes continuar donde lo dejaste.
+                </span>
+                <Button type="button" size="sm" variant="outline" onClick={clearDrafts}>Descartar borrador</Button>
+            </div>
+        )}
+
         {/* PESTAÑAS DEL LOTE */}
         <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
             {drafts.map((draft, index) => (
@@ -277,7 +295,7 @@ export default function RecordsWorkspaceModal({ mode, seeds = [], onClose, onSav
                     <Input type="number" value={active.yearOfPublication} onChange={(e: any) => patchActive({ yearOfPublication: e.target.value })} />
                 </div>
                 <div>
-                    <Label>Editorial</Label>
+                    <Label isRequired={false}>Editorial (opcional)</Label>
                     <Input value={active.editorial} onChange={(e: any) => patchActive({ editorial: e.target.value })} />
                 </div>
                 <div>
