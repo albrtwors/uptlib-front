@@ -19,6 +19,7 @@ import CategoryFilter from "../filters/physical-books/categoryFilter"
 import dynamic from "next/dynamic"
 import CopiesManager from "@/components/copies/CopiesManager"
 import FilterBar from "@/components/ui/FilterBar"
+import PageSizeSelect from "@/components/ui/PageSizeSelect"
 import SearchField from "@/components/form/SearchField"
 import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
@@ -110,13 +111,7 @@ export default function ManagePhysicalBooksPage() {
                     setAppliedSearch(term)
                 }}
             />
-            <div className="sm:max-w-32">
-                <Label>Cantidad</Label>
-                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const limi = parseInt(e.target.value)
-                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
-                }}></Input>
-            </div>
+            <PageSizeSelect label="Cantidad" limit={limit} onLimitChange={(size) => { setLimit(size); setPage(1) }} />
             <CategoryFilter setSearchHandler={setCategory}></CategoryFilter>
 
             <div>

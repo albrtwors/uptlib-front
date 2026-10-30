@@ -20,6 +20,7 @@ import TypeFilter from "../filters/items/TypeFilter"
 import dynamic from 'next/dynamic'
 import CopiesManager from "@/components/copies/CopiesManager"
 import FilterBar from "@/components/ui/FilterBar"
+import PageSizeSelect from "@/components/ui/PageSizeSelect"
 import SearchField from "@/components/form/SearchField"
 import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
@@ -128,12 +129,7 @@ export default function InventoryManagePage({ }) {
                 }}
             />
 
-            <div className="sm:max-w-40">
-                <Label>Cantidad por Pagina</Label>
-                <Input type='number' defaultValue={10} onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    setLimit(isNaN(parseInt(e.currentTarget.value)) ? '10' : e.currentTarget.value)
-                }} placeholder="Cantidad"></Input>
-            </div>
+            <PageSizeSelect limit={limit} onLimitChange={(size) => { setLimit(String(size)); setPage(1) }} />
 
             <TypeFilter setSearchHandler={setType}></TypeFilter>
         </FilterBar>
