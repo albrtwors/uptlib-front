@@ -11,9 +11,9 @@ import Label from "../form/Label";
 import { useHttpSubmit } from "@/hooks/physicalBookOperations/useHttpSubmit";
 import { useManageModals } from "@/hooks/useModal";
 import PhysicalBookSearcher from "../form/input/physical-book-searcher/PhysicalBookSearcher";
+import CopySelector from "../copies/CopySelector";
 import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
-import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
 import ManagePhysicalBooksTable from "./tables/operationsTable";
 import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
@@ -21,6 +21,7 @@ import usePagination from "@/hooks/usePaginationOwn";
 import Pagination from "../pagination/OwnPaginator";
 import dynamic from "next/dynamic";
 import FilterBar from "@/components/ui/FilterBar";
+import PageSizeSelect from "@/components/ui/PageSizeSelect";
 import SearchField from "@/components/form/SearchField";
 import BulkActionBar from "@/components/ui/BulkActionBar";
 import useRowSelection from "@/hooks/lib/useRowSelection";
@@ -38,6 +39,10 @@ export default function ManageOperationsPage() {
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [entrieModal, setEntrieModal] = useState<any>(false)
     const [dropModal, setDropModal] = useState<any>(false)
+    const [entrieBookId, setEntrieBookId] = useState<string | null>(null)
+    const [selectedEntrieCopies, setSelectedEntrieCopies] = useState<string[]>([])
+    const [dropBookId, setDropBookId] = useState<string | null>(null)
+    const [selectedDropCopies, setSelectedDropCopies] = useState<string[]>([])
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [selectedOperation, setSelectedOperation] = useState<any>(null)
 
@@ -56,7 +61,7 @@ export default function ManageOperationsPage() {
     const { operations, setOperations, getOperations } = useOperations({ search: appliedSearch, limit })
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, type, selectedOperation, totalPages })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, setEntrieModal, setDropModal, search: appliedSearch, type, selectedOperation, totalPages })
 
 
     const reload = (targetPage = page) => fetch(`/api/physical-book-operation?limit=${limit}&page=${targetPage}&type=${type}&search=${appliedSearch}`)
@@ -93,18 +98,12 @@ export default function ManageOperationsPage() {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => setEntrieModal(true)}>Entrada</Button>
-                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+                <Button type="button" onClick={() => { setEntrieBookId(null); setSelectedEntrieCopies([]); setEntrieModal(true) }}>Entrada</Button>
+                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => { setDropBookId(null); setSelectedDropCopies([]); setDropModal(true) }}>Baja</Button>
                 <ExportPDFButton items={operations} title={'Reporte de operaciones de Libros físicos'} ></ExportPDFButton>
             </>}
         >
-            <div className="sm:max-w-40">
-                <Label>Cantidad por Página</Label>
-                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const limi = parseInt(e.target.value)
-                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
-                }}></Input>
-            </div>
+            <PageSizeSelect limit={limit} onLimitChange={(size) => { setLimit(size); setPage(1) }} />
             <SearchField
                 label="Buscar por Nombre del Libro"
                 placeholder="Buscar libros..."
@@ -231,6 +230,36 @@ export default function ManageOperationsPage() {
                 <div className="flex-1 flex justify-end"><Button onClick={() => setEntrieModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEntrieSubmit(e)} className="flex flex-col gap-2">
                     <div>
+                        <PhysicalBookSearcher onSelect={(book: any) => {
+                            setEntrieBookId(book?.id ?? null)
+                            setSelectedEntrieCopies([])
+                        }}></PhysicalBookSearcher>
+                    </div>
+
+                    {entrieBookId && (
+                        <CopySelector
+                            key={entrieBookId}
+                            kind="physical-book"
+                            resourceId={entrieBookId}
+                            statuses={["BAJA", "MANTENIMIENTO"]}
+                            label="Ejemplares a reactivar"
+                            emptyText="No hay ejemplares dados de baja ni en mantenimiento. Se crearán ejemplares nuevos con la cantidad."
+                            onChange={setSelectedEntrieCopies}
+                        />
+                    )}
+
+                    <div>
+                        <Label>Cantidad a agregar</Label>
+                        <Input
+                            type="number"
+                            name="quantity"
+                            placeholder="3"
+                            disabled={selectedEntrieCopies.length > 0}
+                            defaultValue={selectedEntrieCopies.length > 0 ? selectedEntrieCopies.length : undefined}
+                        ></Input>
+                    </div>
+
+                    <div>
                         <Label>Nombre del Encargado</Label>
                         <Input name="personNames"></Input>
                     </div>
@@ -238,14 +267,6 @@ export default function ManageOperationsPage() {
                     <div>
                         <Label>Apellido del Encargado</Label>
                         <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
                     </div>
 
                     <Button>Guardar</Button>
@@ -259,6 +280,36 @@ export default function ManageOperationsPage() {
                 <div className="flex-1 flex justify-end"><Button onClick={() => setDropModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDropSubmit(e)} className="flex flex-col gap-2">
                     <div>
+                        <PhysicalBookSearcher onSelect={(book: any) => {
+                            setDropBookId(book?.id ?? null)
+                            setSelectedDropCopies([])
+                        }}></PhysicalBookSearcher>
+                    </div>
+
+                    {dropBookId && (
+                        <CopySelector
+                            key={dropBookId}
+                            kind="physical-book"
+                            resourceId={dropBookId}
+                            statuses={["DISPONIBLE", "MANTENIMIENTO"]}
+                            label="Ejemplares a dar de baja"
+                            emptyText="Este libro no tiene ejemplares que puedan darse de baja. Se usará la cantidad."
+                            onChange={setSelectedDropCopies}
+                        />
+                    )}
+
+                    <div>
+                        <Label>Cantidad a dar de baja</Label>
+                        <Input
+                            type="number"
+                            name="quantity"
+                            placeholder="3"
+                            disabled={selectedDropCopies.length > 0}
+                            defaultValue={selectedDropCopies.length > 0 ? selectedDropCopies.length : undefined}
+                        ></Input>
+                    </div>
+
+                    <div>
                         <Label>Nombre del Encargado</Label>
                         <Input name="personNames"></Input>
                     </div>
@@ -266,14 +317,6 @@ export default function ManageOperationsPage() {
                     <div>
                         <Label>Apellido del Encargado</Label>
                         <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <PhysicalBookSearcher ></PhysicalBookSearcher>
                     </div>
 
                     <Button>Guardar</Button>

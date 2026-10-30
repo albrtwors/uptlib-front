@@ -16,28 +16,46 @@ interface CopySelectorProps {
     kind: "physical-book" | "inventory"
     resourceId: string
     onChange?: (ids: string[]) => void
+    /** Estados que se muestran. Por defecto sólo los disponibles (préstamos). */
+    statuses?: CopyStatus[]
+    /** Texto del encabezado de la lista de ejemplares. */
+    label?: string
+    /** Aviso cuando no hay ejemplares en los estados buscados. */
+    emptyText?: string
 }
 
-export default function CopySelector({ kind, resourceId, onChange }: CopySelectorProps) {
+export default function CopySelector({
+    kind,
+    resourceId,
+    onChange,
+    statuses = ['DISPONIBLE'],
+    label = 'Ejemplares a prestar',
+    emptyText = 'Este recurso no tiene ejemplares disponibles. Se usará la cantidad.',
+}: CopySelectorProps) {
     const [copies, setCopies] = useState<Copy[]>([])
     const [selected, setSelected] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
 
     const base = `/api/${kind}`
+    const statusKey = statuses.join(',')
 
     useEffect(() => {
         let active = true
+        const allowed = statusKey.split(',')
         fetch(`${base}/${resourceId}/copies`)
             .then((res) => res.json())
             .then((data) => {
                 if (!active) return
                 const list: Copy[] = Array.isArray(data?.data) ? data.data : []
-                setCopies(list.filter((c) => c.status === 'DISPONIBLE'))
+                setCopies(list.filter((c) => allowed.includes(c.status)))
+                // La selección anterior ya no es válida al cambiar de recurso o de estados
+                setSelected([])
+                onChange?.([])
             })
             .catch(() => { if (active) setCopies([]) })
             .finally(() => { if (active) setLoading(false) })
         return () => { active = false }
-    }, [resourceId, base])
+    }, [resourceId, base, statusKey])
 
     const toggle = (id: string) => {
         setSelected((prev) => {
@@ -52,12 +70,12 @@ export default function CopySelector({ kind, resourceId, onChange }: CopySelecto
     }
 
     if (copies.length === 0) {
-        return <p className="text-sm text-gray-500 py-2">Este recurso no tiene ejemplares disponibles. Se usará la cantidad.</p>
+        return <p className="text-sm text-gray-500 py-2">{emptyText}</p>
     }
 
     return (
         <div className="space-y-2">
-            <Label isRequired={false}>Ejemplares a prestar ({selected.length} seleccionados)</Label>
+            <Label isRequired={false}>{label} ({selected.length} seleccionados)</Label>
             <div className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-lg max-h-40 overflow-auto">
                 {copies.map((copy) => (
                     <label

@@ -13,7 +13,6 @@ import { useManageModals } from "@/hooks/useModal";
 import PhysicalBookSearcher from "../form/input/physical-book-searcher/PhysicalBookSearcher";
 import { OPERATIONS } from "@/consts/operations";
 import TextArea from "../form/input/TextArea";
-import ManageLoansTable from "@/app/(admin)/physical-books/tables/manageLoansTable";
 import { usePhysicalBookLoans } from "@/hooks/physicalBooksLoans/usePhysicalBookLoans";
 import ManagePhysicalBooksTable from "../physical-books/tables/operationsTable";
 import { useItemOperation } from "@/hooks/itemOperations/itemOperations";
@@ -22,8 +21,10 @@ import Pagination from "../pagination/OwnPaginator";
 import ManageItemOperationsTable from "./tables/manageOperationsHistoricTable";
 import { useOperations } from "@/hooks/physicalBookOperations/useOperations";
 import ItemSearcher from "../form/input/itemSearcher/itemSearcher";
+import CopySelector from "../copies/CopySelector";
 import ExportItemsPDFButton from "./pdf/exportButton";
 import FilterBar from "@/components/ui/FilterBar";
+import PageSizeSelect from "@/components/ui/PageSizeSelect";
 import SearchField from "@/components/form/SearchField";
 import BulkActionBar from "@/components/ui/BulkActionBar";
 import useRowSelection from "@/hooks/lib/useRowSelection";
@@ -44,6 +45,10 @@ export default function ItemOperationsPage() {
     const { setCreateModal, setEditModal, setDeleteModal, createModal, deleteModal, editModal } = useManageModals()
     const [entrieModal, setEntrieModal] = useState<any>(false)
     const [dropModal, setDropModal] = useState<any>(false)
+    const [entrieItemId, setEntrieItemId] = useState<string | null>(null)
+    const [selectedEntrieCopies, setSelectedEntrieCopies] = useState<string[]>([])
+    const [dropItemId, setDropItemId] = useState<string | null>(null)
+    const [selectedDropCopies, setSelectedDropCopies] = useState<string[]>([])
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [selectedOperation, setSelectedOperation] = useState<any>(null)
 
@@ -62,7 +67,7 @@ export default function ItemOperationsPage() {
 
 
     //handlehttp
-    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, search: appliedSearch, selectedOperation, totalPages })
+    const { handleCreateSubmit, handleEntrieSubmit, handleDropSubmit, handleEditSubmit, handleDeleteSubmit } = useHttpSubmit({ getOperations, setOperations, setBooks: setUseAllBooks, getBooks, selectedBook, limit, setDeleteModal, setCreateModal, setEditModal, setEntrieModal, setDropModal, search: appliedSearch, selectedOperation, totalPages })
 
     const reload = (targetPage = page) => getOperations({ search: appliedSearch, limit, page: targetPage }).then((res: any) => {
         setOperations(res.data)
@@ -100,18 +105,12 @@ export default function ItemOperationsPage() {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => setEntrieModal(true)}>Entrada</Button>
-                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => setDropModal(true)}>Baja</Button>
+                <Button type="button" onClick={() => { setEntrieItemId(null); setSelectedEntrieCopies([]); setEntrieModal(true) }}>Entrada</Button>
+                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => { setDropItemId(null); setSelectedDropCopies([]); setDropModal(true) }}>Baja</Button>
                 <ExportPDFButton title={'Historico de Operaciones'} items={operations}></ExportPDFButton>
             </>}
         >
-            <div className="sm:max-w-40">
-                <Label>Cantidad Por Pagina</Label>
-                <Input type="number" defaultValue={10} placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const limi = parseInt(e.target.value)
-                    setLimit(!isNaN(limi) && limi > 0 ? limi : 10)
-                }}></Input>
-            </div>
+            <PageSizeSelect label="Cantidad por página" limit={limit} onLimitChange={(size) => { setLimit(size); setPage(1) }} />
 
             <SearchField
                 label="Buscar Por Nombre del Item"
@@ -230,6 +229,36 @@ export default function ItemOperationsPage() {
                 <div className="flex-1 flex justify-end"><Button onClick={() => setEntrieModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEntrieSubmit(e)} className="flex flex-col gap-2">
                     <div>
+                        <ItemSearcher onSelect={(item: any) => {
+                            setEntrieItemId(item?.id ?? null)
+                            setSelectedEntrieCopies([])
+                        }}></ItemSearcher>
+                    </div>
+
+                    {entrieItemId && (
+                        <CopySelector
+                            key={entrieItemId}
+                            kind="inventory"
+                            resourceId={entrieItemId}
+                            statuses={["BAJA", "MANTENIMIENTO"]}
+                            label="Ejemplares a reactivar"
+                            emptyText="No hay ejemplares dados de baja ni en mantenimiento. Se crearán ejemplares nuevos con la cantidad."
+                            onChange={setSelectedEntrieCopies}
+                        />
+                    )}
+
+                    <div>
+                        <Label>Cantidad a agregar</Label>
+                        <Input
+                            type="number"
+                            name="quantity"
+                            placeholder="3"
+                            disabled={selectedEntrieCopies.length > 0}
+                            defaultValue={selectedEntrieCopies.length > 0 ? selectedEntrieCopies.length : undefined}
+                        ></Input>
+                    </div>
+
+                    <div>
                         <Label>Nombre del Encargado</Label>
                         <Input name="personNames"></Input>
                     </div>
@@ -237,14 +266,6 @@ export default function ItemOperationsPage() {
                     <div>
                         <Label>Apellido del Encargado</Label>
                         <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <ItemSearcher></ItemSearcher>
                     </div>
 
                     <Button>Guardar</Button>
@@ -258,6 +279,36 @@ export default function ItemOperationsPage() {
                 <div className="flex-1 flex justify-end"><Button onClick={() => setDropModal(false)}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDropSubmit(e)} className="flex flex-col gap-2">
                     <div>
+                        <ItemSearcher onSelect={(item: any) => {
+                            setDropItemId(item?.id ?? null)
+                            setSelectedDropCopies([])
+                        }}></ItemSearcher>
+                    </div>
+
+                    {dropItemId && (
+                        <CopySelector
+                            key={dropItemId}
+                            kind="inventory"
+                            resourceId={dropItemId}
+                            statuses={["DISPONIBLE", "MANTENIMIENTO"]}
+                            label="Ejemplares a dar de baja"
+                            emptyText="Este artículo no tiene ejemplares que puedan darse de baja. Se usará la cantidad."
+                            onChange={setSelectedDropCopies}
+                        />
+                    )}
+
+                    <div>
+                        <Label>Cantidad a dar de baja</Label>
+                        <Input
+                            type="number"
+                            name="quantity"
+                            placeholder="3"
+                            disabled={selectedDropCopies.length > 0}
+                            defaultValue={selectedDropCopies.length > 0 ? selectedDropCopies.length : undefined}
+                        ></Input>
+                    </div>
+
+                    <div>
                         <Label>Nombre del Encargado</Label>
                         <Input name="personNames"></Input>
                     </div>
@@ -265,14 +316,6 @@ export default function ItemOperationsPage() {
                     <div>
                         <Label>Apellido del Encargado</Label>
                         <Input name="personSurNames"></Input>
-                    </div>
-
-                    <div>
-                        <Label>Cantidad a agregar</Label>
-                        <Input name="quantity"></Input>
-                    </div>
-                    <div>
-                        <ItemSearcher></ItemSearcher>
                     </div>
 
                     <Button>Guardar</Button>

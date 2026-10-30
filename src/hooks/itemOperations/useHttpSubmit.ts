@@ -2,16 +2,24 @@ import { fetchDeleteConfig, fetchPatchConfig } from "@/hooks/lib/fetch/fetchConf
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 
-export const useHttpSubmit = ({ totalPages, search, getOperations, limit, selectedOperation, setDeleteModal, setCreateModal, setEditModal, setOperations, selectedBook }: any) => {
+export const useHttpSubmit = ({ totalPages, search, getOperations, limit, selectedOperation, setDeleteModal, setCreateModal, setEditModal, setEntrieModal, setDropModal, setOperations, selectedBook }: any) => {
 
     const handleEntrieSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
-        console.log(Object.fromEntries(formData.entries()))
+        const data: any = Object.fromEntries(formData.entries())
+
+        // 🎯 Con ejemplares concretos se reactivan; la cantidad sólo se usa para crear nuevos
+        const copyIds = formData.getAll('copyIds').map(String).filter(Boolean)
+        if (copyIds.length > 0) {
+            data.copyIds = copyIds
+            delete data.quantity
+        }
+
         fetch(`/api/inventory-operation/entries`, {
             credentials: 'include',
-            body: JSON.stringify(Object.fromEntries(formData.entries())),
+            body: JSON.stringify(data),
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -23,6 +31,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
                     setOperations(res.data)
                 })
                 setCreateModal(false)
+                setEntrieModal?.(false)
             }
         })
     }
@@ -66,10 +75,18 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
         e.preventDefault()
         SwalAlert.loading()
         const formData = new FormData(e.currentTarget)
-        console.log(Object.fromEntries(formData.entries()))
+        const data: any = Object.fromEntries(formData.entries())
+
+        // 🎯 Con ejemplares concretos la baja recae sólo sobre ellos
+        const copyIds = formData.getAll('copyIds').map(String).filter(Boolean)
+        if (copyIds.length > 0) {
+            data.copyIds = copyIds
+            delete data.quantity
+        }
+
         fetch(`/api/inventory-operation/drops`, {
             credentials: 'include',
-            body: JSON.stringify(Object.fromEntries(formData.entries())),
+            body: JSON.stringify(data),
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -83,6 +100,7 @@ export const useHttpSubmit = ({ totalPages, search, getOperations, limit, select
                     totalPages.current = res.totalPages
                 })
                 setCreateModal(false)
+                setDropModal?.(false)
             }
         })
     }
