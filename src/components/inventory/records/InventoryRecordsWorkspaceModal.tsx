@@ -27,6 +27,8 @@ interface Draft {
     code: string
     description: string
     stock: string
+    codeFrom: string
+    codeTo: string
     types: ItemTypeOption[]
     sourceItem?: any
 }
@@ -40,6 +42,8 @@ const blankDraft = (): Draft => ({
     code: '',
     description: '',
     stock: '',
+    codeFrom: '',
+    codeTo: '',
     types: []
 })
 
@@ -125,7 +129,7 @@ export default function InventoryRecordsWorkspaceModal({ mode, seeds = [], onClo
 
     const duplicateActive = () => {
         if (!active) return
-        addDraft({ ...active, key: newKey(), id: undefined, code: '', sourceItem: undefined })
+        addDraft({ ...active, key: newKey(), id: undefined, code: '', codeFrom: '', codeTo: '', sourceItem: undefined })
     }
 
     const removeDraft = (key: string) => {
@@ -281,6 +285,18 @@ export default function InventoryRecordsWorkspaceModal({ mode, seeds = [], onClo
                     <Label>Stock</Label>
                     <Input type="number" value={active.stock} onChange={(e: any) => patchActive({ stock: e.target.value })} />
                 </div>
+                {!active.id && (
+                    <>
+                        <div>
+                            <Label isRequired={false}>Código inicial del rango</Label>
+                            <Input value={active.codeFrom} onChange={(e: any) => patchActive({ codeFrom: e.target.value })} placeholder="Ej: INV-001" />
+                        </div>
+                        <div>
+                            <Label isRequired={false}>Código final del rango</Label>
+                            <Input value={active.codeTo} onChange={(e: any) => patchActive({ codeTo: e.target.value })} placeholder="Ej: INV-010" />
+                        </div>
+                    </>
+                )}
                 <div className="sm:col-span-2">
                     <Label isRequired={false}>Descripción (opcional)</Label>
                     <Input value={active.description} onChange={(e: any) => patchActive({ description: e.target.value })} />

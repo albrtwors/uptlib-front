@@ -106,6 +106,8 @@ export function recordToInventoryDraft(record: JsonRecord) {
         code: `${record.code ?? ''}`.trim(),
         description: `${record.description ?? ''}`.trim(),
         stock: record.stock !== undefined && record.stock !== null ? `${record.stock}` : '',
+        codeFrom: `${record.codeFrom ?? ''}`.trim(),
+        codeTo: `${record.codeTo ?? ''}`.trim(),
         types
     }
 }
@@ -119,7 +121,9 @@ export function inventoryDraftToPayload(draft: any): JsonRecord {
         description: draft.description || undefined,
         stock: draft.stock === '' ? undefined : draft.stock,
         typeIds: types.map((type) => type.id).filter(Boolean),
-        typeNames: types.map((type) => type.name).filter(Boolean)
+        typeNames: types.map((type) => type.name).filter(Boolean),
+        codeFrom: draft.codeFrom || undefined,
+        codeTo: draft.codeTo || undefined
     }
     if (draft.id) payload.id = draft.id
     return payload
