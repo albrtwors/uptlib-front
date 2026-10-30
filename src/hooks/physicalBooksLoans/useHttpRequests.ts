@@ -1,8 +1,7 @@
-import { fetchDeleteConfig } from "@/hooks/lib/fetch/fetchConfig"
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
 
-export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, setDeleteModal, setCreateModal, setEditModal, setBooks, getLoans, setLoans, page = 1, totalPages }: any) => {
+export const useHttpSubmit = ({ setPage, search, limit, setCreateModal, getLoans, setLoans, page = 1, totalPages }: any) => {
     const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
         e.preventDefault()
@@ -45,62 +44,41 @@ export const useHttpSubmit = ({ setPage, search, getBooks, limit, selectedBook, 
     }
 
 
+    const reloadLoans = () => {
+        getLoans({ search, limit, page }).then((res: any) => {
+            setLoans(res.data)
+            setPage(1)
+            totalPages.current = res.totalPages
+        })
+    }
+
     const handleSettle = (id: any) => {
         SwalAlert.loading()
         fetch(`/api/physical-book-operation/settle/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
             return res.json()
-        }).then(data => {
-            handleResponses(data)
-            getLoans({ search, limit, page }).then((res: any) => {
-                setLoans(res.data)
-
-                totalPages.current = res.totalPages
-
-            })
-        })
-
-    }
-
-
-    const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        SwalAlert.loading()
-        const formData = new FormData(e.currentTarget)
-        const dataXd = Object.fromEntries(formData.entries())
-
-        fetch(`/api/physical-book/${selectedBook.id}`, {
-            body: JSON.stringify(dataXd),
-            headers: { 'Content-Type': 'application/json' },
-            method: 'PATCH'
-        }).then(res => res.json()).then((data: any) => {
+        }).then((data: any) => {
             const result = handleResponses(data)
-            console.log(data)
-            if (result) {
-                getBooks({ search, limit, page }).then((res: any) => {
-
-                    setBooks(res.data)
-                    totalPages.current = res.totalPages
-                })
-                setEditModal(false)
-            }
+            if (result) reloadLoans()
         })
 
     }
 
-    const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
+    /** El ejemplar prestado se perdió o se dañó: se da de baja y el préstamo se cierra. */
+    const handleDropLoan = async (id: any) => {
+        const ok = await SwalAlert.confirm(
+            'Dar de baja el ejemplar prestado',
+            'El ejemplar saldrá del inventario como baja definitiva y el préstamo quedará cerrado. ¿Continuar?'
+        )
+        if (!ok) return
         SwalAlert.loading()
-        const data = Object.fromEntries(new FormData(e.currentTarget).entries())
-        fetch(`/api/physical-book/${selectedBook.id}`, fetchDeleteConfig()).then(res => res.json()).then((data: any) => {
+        fetch(`/api/physical-book-operation/drop-loan/${id}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' } }).then((res: any) => {
+            return res.json()
+        }).then((data: any) => {
             const result = handleResponses(data)
-            if (result) {
-                getBooks({ search, limit, page }).then((res: any) => {
-                    setBooks(res.data)
-                    totalPages.current = res.totalPages
-                })
-                setDeleteModal(false)
-            }
+            if (result) reloadLoans()
         })
+
     }
-    return { handleDeleteSubmit, handleEditSubmit, handleCreateSubmit, handleSettle }
+
+    return { handleCreateSubmit, handleSettle, handleDropLoan }
 }
