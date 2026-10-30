@@ -14,6 +14,9 @@ export const bulkDeleteRequest = (resource: string, ids: (string | number)[]) =>
 export const bulkUpsertPhysicalBooks = (records: any[]) =>
     fetch(`/api/physical-book/bulk`, fetchPostConfig({ records })).then((res) => res.json())
 
+export const bulkUpsertInventory = (records: any[]) =>
+    fetch(`/api/inventory/bulk`, fetchPostConfig({ records })).then((res) => res.json())
+
 interface BulkActionsOptions {
     resource: string
     selection: RowSelection

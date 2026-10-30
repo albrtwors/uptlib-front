@@ -18,9 +18,6 @@ import Pagination from "../pagination/OwnPaginator"
 import usePagination from "@/hooks/usePaginationOwn"
 import TypeFilter from "../filters/items/TypeFilter"
 import dynamic from 'next/dynamic'
-import InventoryFormChatbot from "@/components/chatbot/inventory/InventoryFormChatbot"
-import AuthorSelectorModal from "../form/author/AuthorSelectorModal"
-import CategorySelectorModal from "../form/category/CategorySelectorModal"
 import CopiesManager from "@/components/copies/CopiesManager"
 import FilterBar from "@/components/ui/FilterBar"
 import SearchField from "@/components/form/SearchField"
@@ -28,45 +25,13 @@ import BulkActionBar from "@/components/ui/BulkActionBar"
 import useRowSelection from "@/hooks/lib/useRowSelection"
 import { useBulkActions } from "@/hooks/lib/useBulkActions"
 import { itemToRecord } from "@/utils/jsonRecords"
-import { formCacheKey, readFormCache, useCachedState } from "@/hooks/lib/useCachedForm"
+import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
+import InventoryRecordsWorkspaceModal from "./records/InventoryRecordsWorkspaceModal"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
     { ssr: false }
 );
-
-type ItemForm = {
-    name: string
-    code: string
-    description: string
-    stock: string
-    typeName: string
-    typeId: string
-    authorIds: string[]
-    categoryIds: string[]
-}
-
-const emptyItemForm = (): ItemForm => ({
-    name: '',
-    code: '',
-    description: '',
-    stock: '',
-    typeName: '',
-    typeId: '',
-    authorIds: [],
-    categoryIds: []
-})
-
-const itemToForm = (item: any): ItemForm => ({
-    name: item?.name || '',
-    code: item?.code || '',
-    description: item?.description || '',
-    stock: item?.totalStock?.toString() || '0',
-    typeName: item?.type?.name || '',
-    typeId: item?.type?.id || '',
-    authorIds: (item?.authors || []).map((a: any) => a.id),
-    categoryIds: (item?.categories || []).map((c: any) => c.id)
-})
 
 export const useItems = ({ search, limit }: any) => {
     const [items, setItems] = useState([])
@@ -97,40 +62,20 @@ export default function InventoryManagePage({ }) {
 
     const { items, setItems, getItems } = useItems({ search, limit })
     const { deleteModal, setDeleteModal } = useManageModals()
-    // 💡 El alta y la edición se guardan en el navegador: si la página se recarga
-    // o se cierra el portátil, el modal reaparece con lo que se llevaba escrito.
-    const {
-        value: selectedItem,
-        setValue: setSelectedItem
-    } = useCachedState<any>(formCacheKey('inventory-selected'), () => null)
-    const {
-        value: formOpen,
-        setValue: setFormOpen
-    } = useCachedState<'create' | 'edit' | null>(formCacheKey('inventory-open'), () => null)
-    const {
-        value: createValues,
-        setValue: setCreateValues,
-        clear: clearCreateDraft,
-        restored: createRestored
-    } = useCachedState(formCacheKey('inventory-create'), emptyItemForm)
+    const [selectedItem, setSelectedItem]: any = useState(null)
     const [copiesItem, setCopiesItem]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
-    // 💡 Añadimos typeId a los estados para sincronizar adecuadamente los IDs de la BD con el buscador
-    const editCacheKey = formCacheKey('inventory-edit', selectedItem?.id ?? '')
+    // 💡 La mesa de trabajo vive en el navegador: si la página se recarga o se cierra
+    // el portátil, el lote de artículos reaparece tal como se dejó.
     const {
-        value: editValues,
-        setValue: setEditValues,
-        clear: clearEditDraft,
-        restored: editRestored
-    } = useCachedState(editCacheKey, emptyItemForm)
+        value: workspace,
+        setValue: setWorkspace,
+        clear: clearWorkspaceCache
+    } = useCachedState<any>(formCacheKey('inventory-workspace-open'), () => null)
 
-    // 💡 Estados de los modales de selección múltiple de autores y categorías
-    const [authorModal, setAuthorModal] = useState({ create: false, edit: false })
-    const [categoryModal, setCategoryModal] = useState({ create: false, edit: false })
-
-    const { handleCreateType, handleDeleteType, handleCreateSubmit, handleDeleteSubmit, handleEditSubmit } = useHttpRequests({
-        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal, createValues, editValues, clearCreateDraft, clearEditDraft, setEditValues
+    const { handleCreateType, handleDeleteType, handleDeleteSubmit } = useHttpRequests({
+        setPage, type, totalPages, search, limit, selectedItem, getItems, setItems, setDeleteModal
     })
 
     const reload = (targetPage = page) => getItems({ search, limit, page: targetPage, type }).then((res: any) => {
@@ -148,15 +93,6 @@ export default function InventoryManagePage({ }) {
         onDone: () => reload(1)
     })
 
-    // Sincronizar el formulario de edición cuando seleccionas un item de la tabla
-    useEffect(() => {
-        if (selectedItem) {
-            // 💡 Un borrador guardado en el navegador manda sobre los datos de la BD
-            if (readFormCache<ItemForm>(editCacheKey)) return
-            setEditValues(itemToForm(selectedItem))
-        }
-    }, [selectedItem])
-
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', search)
@@ -171,37 +107,13 @@ export default function InventoryManagePage({ }) {
         })
     }, [search, limit, page, type])
 
-    const handleAICreateExtract = (data: any) => {
-        setCreateValues(prev => ({
-            ...prev,
-            name: data.name ?? prev.name,
-            code: data.code ?? prev.code,
-            description: data.description ?? prev.description,
-            stock: data.stock ?? prev.stock,
-            typeName: data.typeName ?? prev.typeName,
-            typeId: data.typeId ?? prev.typeId
-        }))
-    }
-
-    const handleAIEditExtract = (data: any) => {
-        setEditValues(prev => ({
-            ...prev,
-            name: data.name ?? prev.name,
-            code: data.code ?? prev.code,
-            description: data.description ?? prev.description,
-            stock: data.stock ?? prev.stock,
-            typeName: data.typeName ?? prev.typeName,
-            typeId: data.typeId ?? prev.typeId
-        }))
-    }
-
     return <div className="flex flex-col gap-3">
 
         <h1 className="text-3xl font-bold">Inventario</h1>
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => { setSelectedItem(null); setFormOpen('create') }}>Añadir Item</Button>
+                <Button type="button" onClick={() => setWorkspace({ mode: 'create', seeds: [] })}>Añadir Item</Button>
                 <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
             </>}
         >
@@ -234,145 +146,20 @@ export default function InventoryManagePage({ }) {
             busy={bulkBusy}
             onDelete={deleteSelected}
             onExport={exportSelected}
+            onEdit={() => setWorkspace({ mode: 'edit', seeds: selection.selectedRows })}
         />
 
-        {/* MODAL CREAR */}
-        {formOpen === 'create' && <GenericModalContainer>
-            <div>
-                <div className="flex justify-between items-center">
-                    <Button type="button" size="sm" variant="outline" onClick={clearCreateDraft}>Limpiar formulario</Button>
-                    <Button type="button" onClick={() => setFormOpen(null)}>X</Button>
-                </div>
-                {createRestored && (
-                    <p className="text-xs text-amber-700 mb-2">
-                        Recuperamos el borrador que tenías en este navegador. Pulsa «Limpiar formulario» para empezar de cero.
-                    </p>
-                )}
-
-                <form encType="multipart/form-data" onSubmit={handleCreateSubmit} className="flex flex-col gap-2 pb-14">
-                    <div className="flex flex-col">
-                        <Label>Nombre</Label>
-                        <Input name='name' value={createValues.name} onChange={(e: any) => setCreateValues({ ...createValues, name: e.target.value })} placeholder="Nombre"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label isRequired={false}>Código</Label>
-                        <Input name='code' value={createValues.code} onChange={(e: any) => setCreateValues({ ...createValues, code: e.target.value })} placeholder="Código"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label isRequired={false}>Descripcion</Label>
-                        <Input name='description' value={createValues.description} onChange={(e: any) => setCreateValues({ ...createValues, description: e.target.value })} placeholder="Descripcion"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label>Stock</Label>
-                        <Input name='stock' type='number' value={createValues.stock} onChange={(e: any) => setCreateValues({ ...createValues, stock: e.target.value })} placeholder="Cantidad..."></Input>
-                    </div>
-
-                    {/* 💡 Enviamos un objeto unificado con name e id mapeado desde createValues */}
-                    <ItemTypeSearcher name="typeName" defaultValue={createValues.typeName ? { name: createValues.typeName, id: createValues.typeId } : undefined}></ItemTypeSearcher>
-
-                    {/* 💡 Selección múltiple de autores y categorías (lógica copiada de libros digitales) */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, create: true })}>
-                            Autores ({createValues.authorIds.length})
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, create: true })}>
-                            Categorías ({createValues.categoryIds.length})
-                        </Button>
-                    </div>
-
-                    <Button>Subir</Button>
-                </form>
-
-                <InventoryFormChatbot mode="create" onExtract={handleAICreateExtract} />
-
-                {/* 💡 Modales de selección múltiple (crear) */}
-                <AuthorSelectorModal
-                    isOpen={authorModal.create}
-                    onClose={() => setAuthorModal({ ...authorModal, create: false })}
-                    selectedIds={createValues.authorIds}
-                    onChange={(ids) => setCreateValues({ ...createValues, authorIds: ids })}
-                />
-                <CategorySelectorModal
-                    isOpen={categoryModal.create}
-                    onClose={() => setCategoryModal({ ...categoryModal, create: false })}
-                    selectedIds={createValues.categoryIds}
-                    onChange={(ids) => setCreateValues({ ...createValues, categoryIds: ids })}
-                />
-            </div>
-        </GenericModalContainer>}
-
-        {/* MODAL EDITAR */}
-        {(formOpen === 'edit' && selectedItem) && <GenericModalContainer>
-            <div>
-                <div className="flex justify-between items-center">
-                    <Button type="button" size="sm" variant="outline" onClick={() => { clearEditDraft(); setEditValues(itemToForm(selectedItem)) }}>Descartar cambios</Button>
-                    <Button type="button" onClick={() => setFormOpen(null)}>X</Button>
-                </div>
-                {editRestored && (
-                    <p className="text-xs text-amber-700 mb-2">
-                        Tenías cambios sin guardar en este navegador para «{selectedItem?.name}». «Descartar cambios» recarga el formulario con los datos actuales.
-                    </p>
-                )}
-                <form encType="multipart/form-data" onSubmit={handleEditSubmit} className="flex flex-col gap-2 pb-14">
-                    <div className="flex flex-col">
-                        <Label>Nombre</Label>
-                        <Input value={editValues.name} onChange={(e: any) => setEditValues({ ...editValues, name: e.target.value })} name='name' placeholder="Nombre"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label isRequired={false}>Código</Label>
-                        <Input value={editValues.code} onChange={(e: any) => setEditValues({ ...editValues, code: e.target.value })} name='code' placeholder="Código"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label isRequired={false}>Descripcion</Label>
-                        <Input value={editValues.description} onChange={(e: any) => setEditValues({ ...editValues, description: e.target.value })} name='description' placeholder="Descripcion"></Input>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <Label>Stock</Label>
-                        <Input value={editValues.stock} onChange={(e: any) => setEditValues({ ...editValues, stock: e.target.value })} name='stock' type='number' placeholder="Cantidad..."></Input>
-                    </div>
-
-                    {/* 💡 Pasamos la estructura completa requerida para alimentar el useEffect del buscador interno */}
-                    <ItemTypeSearcher name="typeName" defaultValue={editValues.typeName ? { name: editValues.typeName, id: editValues.typeId } : null}></ItemTypeSearcher>
-
-                    {/* 💡 Selección múltiple de autores y categorías al editar */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <Button type="button" variant="outline" onClick={() => setAuthorModal({ ...authorModal, edit: true })}>
-                            Autores ({editValues.authorIds.length})
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setCategoryModal({ ...categoryModal, edit: true })}>
-                            Categorías ({editValues.categoryIds.length})
-                        </Button>
-                    </div>
-
-                    <Button>Subir</Button>
-                </form>
-
-                <InventoryFormChatbot mode="edit" currentItem={selectedItem} onExtract={handleAIEditExtract} />
-
-                {/* 💡 Modales de selección múltiple (editar) */}
-                <AuthorSelectorModal
-                    isOpen={authorModal.edit}
-                    onClose={() => setAuthorModal({ ...authorModal, edit: false })}
-                    selectedIds={editValues.authorIds}
-                    onChange={(ids) => setEditValues({ ...editValues, authorIds: ids })}
-                />
-                <CategorySelectorModal
-                    isOpen={categoryModal.edit}
-                    onClose={() => setCategoryModal({ ...categoryModal, edit: false })}
-                    selectedIds={editValues.categoryIds}
-                    onChange={(ids) => setEditValues({ ...editValues, categoryIds: ids })}
-                />
-            </div>
-        </GenericModalContainer>}
+        {/* MESA DE TRABAJO: crear, editar en lote e importar/exportar JSON */}
+        {workspace &&
+            <InventoryRecordsWorkspaceModal
+                mode={workspace.mode ?? 'create'}
+                seeds={workspace.seeds ?? []}
+                onClose={clearWorkspaceCache}
+                onSaved={() => reload()}
+            />}
 
         {/* MODAL ELIMINAR */}
-        {deleteModal && <GenericModalContainer>
+        {deleteModal && selectedItem && <GenericModalContainer>
             <div>
                 <div className="flex justify-end"><Button onClick={() => setDeleteModal(false)}>X</Button></div>
                 <form onSubmit={handleDeleteSubmit}>
@@ -390,10 +177,7 @@ export default function InventoryManagePage({ }) {
                 setDeleteModal(true)
                 setSelectedItem(item)
             }}
-            onEdit={(item: any) => {
-                setSelectedItem(item)
-                setFormOpen('edit')
-            }}
+            onEdit={(item: any) => setWorkspace({ mode: 'edit', seeds: [item] })}
             onCopies={(item: any) => setCopiesItem(item)}
             items={items}></ManageItemsTable>
         }
@@ -462,67 +246,7 @@ export default function InventoryManagePage({ }) {
     </div>
 }
 
-const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages, createValues, editValues, clearCreateDraft, clearEditDraft, setEditValues }: any) => {
-    const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const data = new FormData(e.currentTarget)
-        const payload = {
-            name: data.get('name'),
-            code: data.get('code'),
-            description: data.get('description'),
-            stock: data.get('stock'),
-            typeName: data.get('typeName'),
-            typeId: data.get('typeId'),
-            authorIds: createValues.authorIds || [],
-            categoryIds: createValues.categoryIds || []
-        }
-        fetch(`/api/inventory`, {
-            method: 'POST',
-            credentials: 'include',
-            body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'application/json' }
-        }).then(res => res.json()).then(data => {
-            const result = handleResponses(data)
-            if (result) {
-                clearCreateDraft()
-                getItems({ search, limit, type }).then((res: any) => {
-                    setItems(res.data)
-                    totalPages.current = res.totalPages
-                })
-            }
-        })
-    }
-
-    const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        const data = new FormData(e.currentTarget)
-        const payload = {
-            name: data.get('name'),
-            code: data.get('code'),
-            description: data.get('description'),
-            stock: data.get('stock'),
-            typeName: data.get('typeName'),
-            typeId: data.get('typeId'),
-            authorIds: editValues.authorIds || [],
-            categoryIds: editValues.categoryIds || []
-        }
-        fetch(`/api/inventory/${selectedItem.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(payload),
-            headers: { 'Content-Type': 'application/json' }
-        }).then(res => res.json()).then(data => {
-            const result = handleResponses(data)
-            if (result) {
-                clearEditDraft()
-                setEditValues(itemToForm(selectedItem))
-                getItems({ search, limit, page, type }).then((res: any) => {
-                    setItems(res.data)
-                    totalPages.current = res.totalPages
-                })
-            }
-        })
-    }
-
+const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setItems, search, limit, page, type, totalPages }: any) => {
     const handleDeleteSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         fetch(`/api/inventory/${selectedItem.id}`, fetchDeleteConfig()).then(res => res.json()).then(data => {
@@ -558,5 +282,5 @@ const useHttpRequests = ({ selectedItem, setDeleteModal, setPage, getItems, setI
         })
     }
 
-    return { handleCreateType, handleCreateSubmit, handleDeleteType, handleDeleteSubmit, handleEditSubmit }
+    return { handleCreateType, handleDeleteType, handleDeleteSubmit }
 }

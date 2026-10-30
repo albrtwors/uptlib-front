@@ -26,10 +26,7 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, se
                                 Descripción
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                                Tipo
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
-                                Autores / Categorías
+                                Tipos
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Stock
@@ -71,26 +68,15 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, se
                                     {item.description || 'N/A'}
                                 </td>
 
-                                {/* Tipo */}
-                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                    <div className="font-medium text-gray-900 truncate">{item.type?.name || 'N/A'}</div>
-                                    <div className="text-xs text-gray-500">{item.typeId}</div>
-                                </td>
-
-                                {/* Autores / Categorías */}
-                                <td className="px-4 py-4 text-sm text-gray-600 hidden lg:table-cell max-w-[200px]">
+                                {/* Tipos */}
+                                <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[220px]">
                                     <div className="flex flex-wrap gap-1">
-                                        {(item.authors || []).map((author: any) => (
-                                            <span key={author.id} className="inline-flex px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                                                {author.name}
+                                        {(item.types || []).map((type: any) => (
+                                            <span key={type.id} className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                                {type.name}
                                             </span>
                                         ))}
-                                        {(item.categories || []).map((category: any) => (
-                                            <span key={category.id} className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                                {category.name}
-                                            </span>
-                                        ))}
-                                        {!item.authors?.length && !item.categories?.length && <span>N/A</span>}
+                                        {!item.types?.length && <span>N/A</span>}
                                     </div>
                                 </td>
 
@@ -187,10 +173,15 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, se
                                 </span>
                             </div>
                             <div>
-                                <span className="block text-xs font-medium text-gray-400 uppercase">Tipo</span>
-                                <span className="text-gray-900 font-medium truncate block mt-0.5">
-                                    {item.type?.name || 'N/A'}
-                                </span>
+                                <span className="block text-xs font-medium text-gray-400 uppercase">Tipos</span>
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {(item.types || []).map((type: any) => (
+                                        <span key={type.id} className="inline-flex px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                            {type.name}
+                                        </span>
+                                    ))}
+                                    {!item.types?.length && <span className="text-gray-900 font-medium">N/A</span>}
+                                </div>
                             </div>
                             <div>
                                 <span className="block text-xs font-medium text-gray-400 uppercase">Stock Total</span>
@@ -205,22 +196,6 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, se
                                 </span>
                             </div>
                         </div>
-
-                        {/* Autores y Categorías (Mobile) */}
-                        {(item.authors?.length > 0 || item.categories?.length > 0) && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                                {(item.authors || []).map((author: any) => (
-                                    <span key={author.id} className="inline-flex px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                                        {author.name}
-                                    </span>
-                                ))}
-                                {(item.categories || []).map((category: any) => (
-                                    <span key={category.id} className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                        {category.name}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
 
                         {/* Acciones Mobile */}
                         <div className="flex gap-2 pt-3 border-t border-gray-100">

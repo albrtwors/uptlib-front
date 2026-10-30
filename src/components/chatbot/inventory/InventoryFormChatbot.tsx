@@ -5,7 +5,7 @@ import ChatbotFab from '../ChatbotFab' // Reutiliza el FAB visual de tu módulo 
 interface InventoryFormChatbotProps {
     mode: 'create' | 'edit'
     currentItem?: any
-    onExtract: (data: { name?: string; code?: string; description?: string; stock?: string; typeName?: string }) => void
+    onExtract: (data: { name?: string; code?: string; description?: string; stock?: string; typeNames?: string[] | null; typeName?: string }) => void
 }
 
 export default function InventoryFormChatbot({ mode, currentItem, onExtract }: InventoryFormChatbotProps) {

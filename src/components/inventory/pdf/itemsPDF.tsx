@@ -14,8 +14,7 @@ interface ItemPDF {
     name: string;
     code?: string;
     description?: string;
-    type?: { name: string };
-    typeId?: string;
+    types?: { id: string; name: string }[];
     totalStock: number;
     availableStock?: number;
     status: string;
@@ -173,7 +172,7 @@ const ItemsPDF: React.FC<ItemsPDFProps> = ({ items = [], title = 'Reporte de Inv
                     <View style={styles.tableHeader} fixed>
                         <Text style={[styles.headerText, styles.colName]}>PRODUCTO / DESCRIPCIÓN</Text>
                         <Text style={[styles.headerText, styles.colCode]}>CÓDIGO</Text>
-                        <Text style={[styles.headerText, styles.colType]}>CATEGORÍA</Text>
+                        <Text style={[styles.headerText, styles.colType]}>TIPOS</Text>
                         <Text style={[styles.headerText, styles.colStock]}>STOCK (DISP.)</Text>
                         <Text style={[styles.headerText, styles.colStatus]}>ESTADO</Text>
                     </View>
@@ -188,7 +187,7 @@ const ItemsPDF: React.FC<ItemsPDFProps> = ({ items = [], title = 'Reporte de Inv
                                 <Text>{item.code || '-'}</Text>
                             </View>
                             <View style={[styles.cell, styles.colType]}>
-                                <Text>{item.type?.name || 'General'}</Text>
+                                <Text>{(item.types || []).map((type) => type.name).join(', ') || 'General'}</Text>
                             </View>
                             <View style={[styles.cell, styles.colStock]}>
                                 <Text style={{ fontWeight: 'bold' }}>{item.totalStock}</Text>

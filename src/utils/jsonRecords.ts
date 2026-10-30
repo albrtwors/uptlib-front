@@ -82,10 +82,47 @@ export function itemToRecord(item: any): JsonRecord {
         code: item.code ?? null,
         description: item.description ?? null,
         stock: item.totalStock ?? 0,
-        typeName: item.type?.name ?? null,
-        authorNames: namesOf(item.authors),
-        categoryNames: namesOf(item.categories)
+        typeIds: (Array.isArray(item.types) ? item.types : []).map((type: any) => type?.id).filter(Boolean),
+        typeNames: namesOf(item.types)
     }
+}
+
+/** Normaliza un registro de inventario importado para la mesa de trabajo. */
+export function recordToInventoryDraft(record: JsonRecord) {
+    const asArray = (value: any): string[] => (Array.isArray(value) ? value.map((v) => `${v}`).filter(Boolean) : [])
+    const typeIds = asArray(record.typeIds)
+    const typeNames = Array.isArray(record.typeNames)
+        ? asArray(record.typeNames)
+        : record.typeName
+            ? [`${record.typeName}`.trim()].filter(Boolean)
+            : []
+    const types = typeIds.length > 0
+        ? typeIds.map((id, index) => ({ id, name: typeNames[index] ?? id }))
+        : typeNames.map((name) => ({ id: '', name }))
+
+    return {
+        id: record.id ? `${record.id}` : undefined,
+        name: `${record.name ?? ''}`.trim(),
+        code: `${record.code ?? ''}`.trim(),
+        description: `${record.description ?? ''}`.trim(),
+        stock: record.stock !== undefined && record.stock !== null ? `${record.stock}` : '',
+        types
+    }
+}
+
+/** Cuerpo del request que entiende /inventory/bulk. */
+export function inventoryDraftToPayload(draft: any): JsonRecord {
+    const types: { id?: string; name?: string }[] = Array.isArray(draft.types) ? draft.types : []
+    const payload: JsonRecord = {
+        name: draft.name,
+        code: draft.code || undefined,
+        description: draft.description || undefined,
+        stock: draft.stock === '' ? undefined : draft.stock,
+        typeIds: types.map((type) => type.id).filter(Boolean),
+        typeNames: types.map((type) => type.name).filter(Boolean)
+    }
+    if (draft.id) payload.id = draft.id
+    return payload
 }
 
 /**

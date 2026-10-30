@@ -17,7 +17,7 @@ export default function ManageItemsTable({ items, onDelete, onEdit }: any) {
                         </th>
 
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden xl:table-cell">
-                            Tipo
+                            Tipos
                         </th>
 
                         <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -55,10 +55,16 @@ export default function ManageItemsTable({ items, onDelete, onEdit }: any) {
                                 {item.description || 'N/A'}
                             </td>
 
-                            {/* tipo */}
-                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[120px]">
-                                <div className="font-medium text-gray-900 truncate">{item.type?.name || 'N/A'}</div>
-                                <div className="text-xs text-gray-500">{item.typeId}</div>
+                            {/* tipos */}
+                            <td className="px-4 py-4 text-sm text-gray-600 hidden xl:table-cell max-w-[220px]">
+                                <div className="flex flex-wrap gap-1">
+                                    {(item.types || []).map((type: any) => (
+                                        <span key={type.id} className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                            {type.name}
+                                        </span>
+                                    ))}
+                                    {!item.types?.length && <span>N/A</span>}
+                                </div>
                             </td>
 
 
