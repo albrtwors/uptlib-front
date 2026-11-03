@@ -72,7 +72,7 @@ export default function CategorySearcher({ defaultValue = null }: any) {
 
             {/* DESPLEGABLE FLOTANTE DE SUGERENCIAS */}
             {categories && categories.length > 0 && !selectedCategory && (
-                <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg shadow-md bg-white dark:bg-gray-900 absolute mountaineer z-50 w-full top-[4.5rem]">
+                <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg shadow-md bg-white dark:bg-gray-900 absolute top-full z-50 w-full">
                     <div className="divide-y divide-gray-100 dark:divide-gray-800">
                         {categories.slice(0, 8).map((category: any) => (
                             <div

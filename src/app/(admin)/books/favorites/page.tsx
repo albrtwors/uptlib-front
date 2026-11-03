@@ -38,12 +38,12 @@ export default function BooksPage() {
     }, [search, limit, page])
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Tus Libros Favoritos</h1>
+        <h1 className="text-xl sm:text-3xl font-bold">Tus Libros Favoritos</h1>
 
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
 
-            <div>
+            <div className="sm:w-40">
                 <Label>Cantidad por Página</Label>
                 <Input type="number" placeholder="Cantidad" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const limi = parseInt(e.target.value)
@@ -55,7 +55,7 @@ export default function BooksPage() {
 
                 }}></Input>
             </div>
-            <div>
+            <div className="min-w-0 sm:flex-1">
                 <Label>Nombre del libro</Label>
                 <Input className="w-full" placeholder="Buscar libros..." onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}></Input>
             </div>

@@ -122,9 +122,11 @@ export default function QrScannerModal({ onResult, onClose }: QrScannerModalProp
             }}
         >
             <Label isRequired={false}>O escribe el código</Label>
-            <div className="flex gap-2">
-                <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="INV-0001 · LIB-ABC-0002 · UPTALIB:V1:..." />
-                <Button type="submit" variant="outline">Buscar</Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="min-w-0 flex-1">
+                    <Input value={manual} onChange={(e: any) => setManual(e.target.value)} placeholder="INV-0001 · LIB-ABC-0002 · UPTALIB:V1:..." />
+                </div>
+                <Button type="submit" variant="outline" className="shrink-0">Buscar</Button>
             </div>
         </form>
     </GenericModalContainer>

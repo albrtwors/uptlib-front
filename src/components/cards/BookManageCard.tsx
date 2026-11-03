@@ -30,7 +30,7 @@ export default function BookManageCard({ title, description, pnf, onEdit, onDele
                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">{description || 'Sin descripción'}</p>
             </div>
 
-            <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <button type="button" onClick={onEdit} className="flex-1 text-xs py-2 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 font-medium transition-colors">
                     Editar
                 </button>

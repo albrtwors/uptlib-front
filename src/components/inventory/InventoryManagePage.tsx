@@ -138,7 +138,7 @@ export default function InventoryManagePage({ }) {
 
     return <div className="flex flex-col gap-3">
 
-        <h1 className="text-3xl font-bold">Inventario</h1>
+        <h1 className="text-xl sm:text-3xl font-bold">Inventario</h1>
 
         <FilterBar
             actions={<>
@@ -240,7 +240,7 @@ export default function InventoryManagePage({ }) {
         {scanning && <QrScannerModal onResult={handleRaw} onClose={() => setScanning(false)} />}
 
         <div>
-            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl shadow-sm">
+            <div className="flex flex-wrap items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                         <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,8 +252,8 @@ export default function InventoryManagePage({ }) {
                     </div>
                 </div>
 
-                <div className="flex gap-2 ml-auto">
-                    <Button size="sm" onClick={() => setTypeModal({ ...typeModal, create: true })}>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto">
+                    <Button className="flex-1 sm:flex-none" size="sm" onClick={() => setTypeModal({ ...typeModal, create: true })}>
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -263,7 +263,7 @@ export default function InventoryManagePage({ }) {
                     <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 hover:text-red-800 shadow-sm px-6 py-2.5"
+                        className="flex-1 sm:flex-none border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 hover:text-red-800 shadow-sm px-6 py-2.5"
                         onClick={() => setTypeModal({ ...typeModal, delete: true })}
                     >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

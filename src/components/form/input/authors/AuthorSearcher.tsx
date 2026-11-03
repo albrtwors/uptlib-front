@@ -72,7 +72,7 @@ export default function AuthorSearcher({ defaultValue = null }: any) {
 
             {/* DESPLEGABLE FLOTANTE DE SUGERENCIAS */}
             {authors && authors.length > 0 && !selectedAuthor && (
-                <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg shadow-md bg-white dark:bg-gray-900 absolute mountaineer z-50 w-full top-[4.5rem]">
+                <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg shadow-md bg-white dark:bg-gray-900 absolute top-full z-50 w-full">
                     <div className="divide-y divide-gray-100 dark:divide-gray-800">
                         {authors.slice(0, 8).map((author: any) => (
                             <div

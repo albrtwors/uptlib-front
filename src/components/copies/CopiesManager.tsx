@@ -186,12 +186,14 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, hig
 
     return <>
         <GenericModalContainer>
-            <div className="flex justify-between items-center gap-2 mb-3">
-                <h3 className="min-w-0 flex-1 truncate text-lg font-bold">Ejemplares · {title}</h3>
-                <Button type="button" size="sm" variant="outline" onClick={() => setQr(qrTargetForRecord(kind, { id: resourceId, name: title, code: parentCode }))}>
-                    QR del registro
-                </Button>
-                <Button type="button" size="sm" onClick={onClose}>X</Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="min-w-0 flex-1 basis-full truncate text-lg font-bold sm:basis-auto">Ejemplares · {title}</h3>
+                <div className="flex shrink-0 gap-2 sm:ml-auto">
+                    <Button type="button" size="sm" variant="outline" onClick={() => setQr(qrTargetForRecord(kind, { id: resourceId, name: title, code: parentCode }))}>
+                        QR del registro
+                    </Button>
+                    <Button type="button" size="sm" onClick={onClose}>X</Button>
+                </div>
             </div>
 
             {error && <div className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</div>}
@@ -217,7 +219,7 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, hig
                     <Label>Códigos personalizados (opcional, separados por coma)</Label>
                     <Input value={codesText} onChange={(e: any) => patchDraft({ codesText: e.target.value })} placeholder="XXX-XXXX-0001, ..." />
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div>
                         <Label>Rango desde (opcional)</Label>
                         <Input value={codeFrom} onChange={(e: any) => patchDraft({ codeFrom: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + 1).padStart(4, '0')}`} />
@@ -257,14 +259,15 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, hig
             ) : copies.length === 0 ? (
                 <p className="text-center text-gray-500 py-6">Este recurso no tiene ejemplares registrados.</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full table-auto">
+                <div className="-mx-3 overflow-x-auto px-3">
+                    {/* 💡 Bajo ~480px la fila de edición necesita su ancho: se desplaza en vez de aplastar los campos */}
+                    <table className="w-full table-auto min-w-[620px]">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-200">
                                 <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Código</th>
                                 <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Estado</th>
                                 <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ubicación</th>
-                                <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-44">Acciones</th>
+                                <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-52">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">

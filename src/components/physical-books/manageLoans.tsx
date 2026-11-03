@@ -95,7 +95,7 @@ export default function ManageLoansPage() {
 
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold dark:text-white">Gestionar Préstamos</h1>
+        <h1 className="text-xl sm:text-3xl font-bold dark:text-white">Gestionar Préstamos</h1>
 
 
         <FilterBar

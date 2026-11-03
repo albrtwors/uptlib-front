@@ -34,7 +34,7 @@ export default function QrCode({ value, size = 176, label, className = '' }: QrC
                 alt={label ? `Código QR de ${label}` : 'Código QR'}
                 width={size}
                 height={size}
-                className="rounded-lg border border-gray-200 bg-white dark:border-gray-700"
+                className="h-auto max-w-full rounded-lg border border-gray-200 bg-white dark:border-gray-700"
             />
             {label && <figcaption className="max-w-full truncate text-center font-mono text-[11px] text-gray-600 dark:text-gray-300">{label}</figcaption>}
         </figure>

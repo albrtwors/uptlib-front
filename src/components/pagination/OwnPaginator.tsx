@@ -31,9 +31,9 @@ const Pagination = ({
     }
 
     return (
-        <div className={`flex gap-3 justify-center items-center ${className}`}>
+        <div className={`flex flex-wrap gap-3 justify-center items-center ${className}`}>
             {showInfo && (
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-500 text-center">
                     Página {page} de {totalPages} ({totalItems} registros)
                 </span>
             )}

@@ -98,7 +98,7 @@ export default function ManageItemLoansPage() {
 
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Gestionar Préstamos</h1>
+        <h1 className="text-xl sm:text-3xl font-bold">Gestionar Préstamos</h1>
 
 
 

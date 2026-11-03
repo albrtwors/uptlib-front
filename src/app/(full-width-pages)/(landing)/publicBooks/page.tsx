@@ -77,7 +77,7 @@ function PublicBooksCatalogContent() {
             <Navbar />
 
             <section className="flex flex-col gap-6 p-4 pt-28 max-w-7xl mx-auto w-full">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Biblioteca Pública
                 </h1>
 

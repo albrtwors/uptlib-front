@@ -109,7 +109,7 @@ export default function ManageUsersPage() {
 
     return <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-3xl font-bold">Gestionar Usuarios</h1>
+            <h1 className="text-xl sm:text-3xl font-bold">Gestionar Usuarios</h1>
             <Button type="button" onClick={() => setCreateModal(true)} className="w-full sm:w-auto">
                 + Agregar Usuario
             </Button>

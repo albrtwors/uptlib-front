@@ -63,7 +63,7 @@ export default function LogsPage() {
 
 
     return <div className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Bitácora de Usuario</h1>
+        <h1 className="text-xl sm:text-3xl font-bold">Bitácora de Usuario</h1>
         <FilterBar>
             <div className="sm:max-w-40">
                 <Label>Cantidad por Pagina</Label>

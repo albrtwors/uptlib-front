@@ -9,7 +9,7 @@ export default function IndexPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
 
             {/* Estado de Carga */}
             {!profile && <Label isRequired={false}>Cargando...</Label>}

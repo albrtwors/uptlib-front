@@ -73,7 +73,7 @@ export default function BooksPage() {
 
     return (
         <section className="flex flex-col gap-6 p-4 max-w-7xl mx-auto w-full">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Libros</h1>
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Libros</h1>
 
             {/* 🛠️ BARRA DE FILTROS IDÉNTICA A MANAGEBOOKS */}
             <div className="flex flex-col sm:flex-row gap-3 items-end w-full bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">

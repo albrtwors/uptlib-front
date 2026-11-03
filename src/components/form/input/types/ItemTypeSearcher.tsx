@@ -61,7 +61,7 @@ export default function ItemTypeSearcher({ setSearchHandler, defaultValue, typeN
             />
 
             {dropDownShow && types.length > 0 && (
-                <div className="p-2 absolute z-50 bg-white dark:bg-gray-800 border dark:border-gray-700 mt-20 rounded-lg shadow-xl max-h-40 overflow-y-auto w-full">
+                <div className="p-2 absolute left-0 right-0 top-full z-50 bg-white dark:bg-gray-800 border dark:border-gray-700 mt-1 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                     {types.map((type: any) => (
                         <div
                             key={type.id}

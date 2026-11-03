@@ -33,12 +33,12 @@ export default function Page() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
-            <div className="max-w-4xl mx-auto px-6 py-20">
-                <div className="text-center mb-20">
-                    <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent mb-8">
+            <div className="max-w-4xl mx-auto px-4 py-10 sm:px-6 sm:py-20">
+                <div className="text-center mb-10 sm:mb-20">
+                    <h1 className="break-words text-3xl sm:text-5xl md:text-7xl font-black bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent mb-8">
                         {book.title}
                     </h1>
-                    <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-base sm:text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
                         {book.description}
                     </p>
                 </div>

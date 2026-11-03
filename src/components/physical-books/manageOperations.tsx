@@ -131,7 +131,7 @@ export default function ManageOperationsPage() {
 
 
     return <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">Histórico de Operaciones</h1>
+        <h1 className="text-xl sm:text-3xl font-bold">Histórico de Operaciones</h1>
 
 
         <FilterBar

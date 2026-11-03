@@ -18,7 +18,7 @@ interface BookCardProps {
 
 export default function BookCard({ id, isPublic = false, isLikable = true, title, pnf, description, routepdf, handleQuit }: BookCardProps) {
     return (
-        <div className="group flex flex-col justify-between p-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xs hover:shadow-md hover:border-purple-200 dark:hover:border-purple-900/50 transition-all duration-300 min-w-0 w-full h-[280px]">
+        <div className="group flex flex-col justify-between p-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xs hover:shadow-md hover:border-purple-200 dark:hover:border-purple-900/50 transition-all duration-300 min-w-0 w-full min-h-[280px]">
 
             {/* Contenedor Superior (Títulos, Textos y Favoritos) */}
             <div className="flex flex-col gap-2 min-w-0">

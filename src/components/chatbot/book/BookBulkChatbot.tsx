@@ -76,10 +76,10 @@ export default function BookBulkChatbot({ onSuccessExecute }: BookBulkChatbotPro
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-4 left-4 right-4 z-50 flex flex-col items-end sm:bottom-6 sm:left-auto sm:right-6">
             {/* Ventana del Chat */}
             {isOpen && (
-                <div className="bg-white border border-gray-200 shadow-2xl rounded-2xl w-80 sm:w-96 h-[450px] mb-4 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+                <div className="bg-white border border-gray-200 shadow-2xl rounded-2xl w-full sm:w-96 h-[min(450px,70dvh)] mb-4 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-gray-800 to-slate-900 text-white px-4 py-3 flex justify-between items-center">
                         <div className="flex items-center gap-2">
