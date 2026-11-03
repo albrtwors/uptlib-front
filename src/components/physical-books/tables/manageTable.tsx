@@ -2,8 +2,11 @@
 
 import Checkbox from "@/components/form/input/Checkbox"
 import type { RowSelection } from "@/hooks/lib/useRowSelection"
+import { HIGHLIGHT_ROW, useHighlightScroll } from "@/hooks/lib/useHighlightScroll"
 
-export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCopies, onQr, selection }: { books: any[], onDelete: any, onEdit: any, onCopies?: any, onQr?: any, selection?: RowSelection }) {
+export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCopies, onQr, selection, highlightId = null }: { books: any[], onDelete: any, onEdit: any, onCopies?: any, onQr?: any, selection?: RowSelection, highlightId?: string | null }) {
+    useHighlightScroll(highlightId)
+
     return (
         <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
@@ -52,7 +55,8 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                         {books.map((book: any) => (
                             <tr
                                 key={book.id}
-                                className="hover:bg-gray-50 transition-colors group"
+                                data-row-id={book.id}
+                                className={`hover:bg-gray-50 transition-colors group ${highlightId === book.id ? HIGHLIGHT_ROW : ''}`}
                             >
                                 {selection && (
                                     <td className="px-3 py-4 w-10">
@@ -61,7 +65,12 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 )}
                                 {/* Título */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
-                                    <div className="font-semibold text-gray-900 truncate mb-1">{book.title}</div>
+                                    <div className="font-semibold text-gray-900 truncate mb-1">
+                                        {book.title}
+                                        {highlightId === book.id && (
+                                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">escaneado</span>
+                                        )}
+                                    </div>
                                     <div className="text-sm text-gray-500">ID: {book.id}</div>
                                 </td>
 
@@ -183,7 +192,7 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
             {/* Mobile Cards - Se muestra SOLO en móviles (md:hidden) */}
             <div className="md:hidden space-y-3">
                 {books.map((book: any) => (
-                    <div key={book.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                    <div key={book.id} data-row-id={book.id} className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all ${highlightId === book.id ? HIGHLIGHT_ROW : ''}`}>
                         {/* Encabezado de la Card */}
                         <div className="flex justify-between items-start mb-3">
                             {selection && (
@@ -195,7 +204,12 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 <h3 className="font-bold text-base text-gray-900 line-clamp-2">
                                     {book.title}
                                 </h3>
-                                <p className="text-xs text-gray-400 mt-0.5">ID: {book.id}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    ID: {book.id}
+                                    {highlightId === book.id && (
+                                        <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">escaneado</span>
+                                    )}
+                                </p>
                             </div>
                             <span className={`px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 ${book.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                 }`}>

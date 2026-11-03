@@ -44,6 +44,7 @@ export default function ManagePhysicalBooksPage() {
 
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [copiesBook, setCopiesBook]: any = useState(null)
+    const [highlightBookId, setHighlightBookId] = useState<string | null>(null)
     const [highlightCopyId, setHighlightCopyId] = useState<string | null>(null)
     const [qrTarget, setQrTarget]: any = useState(null)
     // 💡 La mesa de trabajo se guarda en el navegador: si el usuario refresca la
@@ -89,8 +90,9 @@ export default function ManagePhysicalBooksPage() {
         onDone: () => reload(1)
     })
 
-    // 💡 El QR de un libro filtra el listado y el de un ejemplar abre sus ejemplares
-    // con esa unidad a la vista. Un código suelto (etiqueta vieja) también basta.
+    // 💡 El QR del libro busca el registro y lo remarca en el listado; sólo el QR de un
+    // ejemplar, que identifica una unidad física concreta, además abre sus ejemplares
+    // con esa unidad marcada. Un código suelto (etiqueta vieja) también basta.
     const { scanning, setScanning, handleRaw } = useQrScan({
         resource: 'physical-book',
         onResult: ({ record, copy, payload }) => {
@@ -100,8 +102,9 @@ export default function ManagePhysicalBooksPage() {
                 setAppliedSearch(term)
                 setPage(1)
             }
-            if (record) {
-                setHighlightCopyId(copy?.id ?? null)
+            setHighlightBookId(record?.id ?? null)
+            if (record && copy?.id) {
+                setHighlightCopyId(copy.id)
                 setCopiesBook(record)
             }
         }
@@ -136,6 +139,7 @@ export default function ManagePhysicalBooksPage() {
                 onValueChange={setSearchInput}
                 onSubmit={(term) => {
                     setPage(1)
+                    setHighlightBookId(null)
                     setAppliedSearch(term)
                 }}
             />
@@ -175,6 +179,7 @@ export default function ManagePhysicalBooksPage() {
                 }}
                 onCopies={(book: any) => { setHighlightCopyId(null); setCopiesBook(book) }}
                 onQr={(book: any) => setQrTarget(qrTargetForRecord('physical-book', book))}
+                highlightId={highlightBookId}
                 books={books} />}
         </div>
 

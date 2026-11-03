@@ -2,8 +2,11 @@
 
 import Checkbox from "@/components/form/input/Checkbox"
 import type { RowSelection } from "@/hooks/lib/useRowSelection"
+import { HIGHLIGHT_ROW, useHighlightScroll } from "@/hooks/lib/useHighlightScroll"
 
-export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, onQr, selection }: { items: any[], onDelete: any, onEdit: any, onCopies?: any, onQr?: any, selection?: RowSelection }) {
+export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, onQr, selection, highlightId = null }: { items: any[], onDelete: any, onEdit: any, onCopies?: any, onQr?: any, selection?: RowSelection, highlightId?: string | null }) {
+    useHighlightScroll(highlightId)
+
     return (
         <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (md:block) */}
@@ -43,7 +46,8 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, on
                         {items.map((item: any) => (
                             <tr
                                 key={item.id}
-                                className="hover:bg-gray-50 transition-colors group"
+                                data-row-id={item.id}
+                                className={`hover:bg-gray-50 transition-colors group ${highlightId === item.id ? HIGHLIGHT_ROW : ''}`}
                             >
                                 {selection && (
                                     <td className="px-3 py-4 w-10">
@@ -52,7 +56,12 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, on
                                 )}
                                 {/* Título / Nombre */}
                                 <td className="px-4 py-4 font-medium text-gray-900 max-w-[200px] truncate md:max-w-none">
-                                    <div className="font-semibold text-gray-900 truncate mb-1">{item.name}</div>
+                                    <div className="font-semibold text-gray-900 truncate mb-1">
+                                        {item.name}
+                                        {highlightId === item.id && (
+                                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">escaneado</span>
+                                        )}
+                                    </div>
                                     <div className="text-sm text-gray-500">ID: {item.id}</div>
                                 </td>
 
@@ -147,7 +156,7 @@ export default function ManageItemsTable({ items, onDelete, onEdit, onCopies, on
             {/* Mobile Cards - Se muestra SOLO en pantallas chicas (md:hidden) */}
             <div className="md:hidden space-y-3">
                 {items.map((item: any) => (
-                    <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                    <div key={item.id} data-row-id={item.id} className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all ${highlightId === item.id ? HIGHLIGHT_ROW : ''}`}>
                         {/* Encabezado de la Card: Nombre y Estado */}
                         <div className="flex justify-between items-start mb-2">
                             {selection && (

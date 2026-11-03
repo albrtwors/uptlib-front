@@ -72,6 +72,7 @@ export default function InventoryManagePage({ }) {
     const { deleteModal, setDeleteModal } = useManageModals()
     const [selectedItem, setSelectedItem]: any = useState(null)
     const [copiesItem, setCopiesItem]: any = useState(null)
+    const [highlightItemId, setHighlightItemId] = useState<string | null>(null)
     const [highlightCopyId, setHighlightCopyId] = useState<string | null>(null)
     const [qrTarget, setQrTarget]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
@@ -93,9 +94,9 @@ export default function InventoryManagePage({ }) {
         totalPages.current = res.totalPages
     })
 
-    // 💡 Escanear lleva al usuario hasta lo que tiene enfrente: el QR de un
-    // artículo filtra el listado, y el de un ejemplar abre sus ejemplares con
-    // esa unidad a la vista. Un código suelto (etiqueta vieja) también basta.
+    // 💡 Escanear lleva al usuario hasta lo que tiene enfrente: el QR del artículo
+    // busca el registro y lo remarca en el listado; sólo el QR de un ejemplar, que
+    // identifica una unidad física concreta, además abre sus ejemplares marcados.
     const { scanning, setScanning, handleRaw } = useQrScan({
         resource: 'inventory',
         onResult: ({ record, copy, payload }) => {
@@ -105,8 +106,9 @@ export default function InventoryManagePage({ }) {
                 setSearch(term)
                 setPage(1)
             }
-            if (record) {
-                setHighlightCopyId(copy?.id ?? null)
+            setHighlightItemId(record?.id ?? null)
+            if (record && copy?.id) {
+                setHighlightCopyId(copy.id)
                 setCopiesItem(record)
             }
         }
@@ -154,6 +156,7 @@ export default function InventoryManagePage({ }) {
                 onValueChange={setSearchInput}
                 onSubmit={(term) => {
                     setPage(1)
+                    setHighlightItemId(null)
                     setSearch(term)
                 }}
             />
@@ -205,6 +208,7 @@ export default function InventoryManagePage({ }) {
             onEdit={(item: any) => setWorkspace({ mode: 'edit', seeds: [item] })}
             onCopies={(item: any) => { setHighlightCopyId(null); setCopiesItem(item) }}
             onQr={(item: any) => setQrTarget(qrTargetForRecord('inventory', item))}
+            highlightId={highlightItemId}
             items={items}></ManageItemsTable>
         }
 

@@ -6,6 +6,7 @@ import Input from "@/components/form/input/InputField"
 import Label from "@/components/form/Label"
 import GenericModalContainer from "@/components/modals/GenericModalContainer"
 import QrModal from "@/components/qr/QrModal"
+import { HIGHLIGHT_ROW } from "@/hooks/lib/useHighlightScroll"
 import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 import { qrTargetForCopy, qrTargetForRecord } from "@/utils/qrPayload"
 
@@ -291,7 +292,7 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, hig
                                 <tr
                                     key={copy.id}
                                     ref={(node) => { rowRefs.current[copy.id] = node }}
-                                    className={`hover:bg-gray-50 ${highlightCopyId === copy.id ? 'bg-amber-50 ring-2 ring-inset ring-amber-400' : ''}`}
+                                    className={`hover:bg-gray-50 ${highlightCopyId === copy.id ? HIGHLIGHT_ROW : ''}`}
                                 >
                                     <td className="px-2 py-2 text-sm font-mono text-gray-800">
                                         {copy.code}
