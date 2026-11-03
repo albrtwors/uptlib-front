@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import GenericModalContainer from "../modals/GenericModalContainer";
@@ -18,6 +17,8 @@ import CopySelector from "../copies/CopySelector";
 import FilterBar from "@/components/ui/FilterBar";
 import PageSizeSelect from "@/components/ui/PageSizeSelect";
 import SearchField from "@/components/form/SearchField";
+import QrScannerModal from "@/components/qr/QrScannerModal";
+import { useQrScan } from "@/hooks/qr/useQrScan";
 import dynamic from "next/dynamic";
 
 
@@ -34,20 +35,48 @@ export default function ManageItemLoansPage() {
     const { setCreateModal, createModal } = useManageModals()
     const [loanItemId, setLoanItemId] = useState<string | null>(null)
     const [selectedCopyIds, setSelectedCopyIds] = useState<string[]>([])
+    // El QR llega antes de que el selector cargue los ejemplares: se guarda aparte
+    // porque el propio selector vacía selectedCopyIds mientras hace la petición.
+    const [preselectedCopyIds, setPreselectedCopyIds] = useState<string[]>([])
+    const [scanned, setScanned] = useState<{ record: any; copy: any } | null>(null)
 
     //search handling
     const pathname = usePathname();
     const router = useRouter();
 
-    //search
-    const [searchInput, setSearchInput] = useState('')
-    const [appliedSearch, setAppliedSearch] = useState('')
-    const [limit, setLimit] = useState(10)
-    const { page, setPage, totalPages } = usePagination()
+    //search · la URL es la que manda: un F5 o un enlace compartido recuperan el contexto
+    const searchParams = useSearchParams()
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
+    const [appliedSearch, setAppliedSearch] = useState(searchParams.get('search') ?? '')
+    const [limit, setLimit] = useState(parseInt(searchParams.get('limit') ?? '10', 10) || 10)
+    const { page, setPage, totalPages } = usePagination(searchParams.get('page') ?? 1)
     const { itemLoans, setItemLoans, getItemLoans } = useItemLoans({ search: appliedSearch, limit, page })
 
     //handlehttp
     const { handleCreateSubmit, handleSettle, handleDropLoan } = useHttpSubmit({ setItemLoans, getItemLoans, page, totalPages, limit, setCreateModal, search: appliedSearch, setPage })
+
+    // 💡 El QR de un artículo o de su ejemplar abre el préstamo ya enfocado en
+    // esa unidad; un código suelto se manda a la búsqueda general.
+    const clearScan = () => { setScanned(null); setPreselectedCopyIds([]) }
+
+    const { scanning, setScanning, handleRaw } = useQrScan({
+        resource: 'inventory',
+        onResult: ({ record, copy, payload }) => {
+            if (record) {
+                setLoanItemId(record.id)
+                setSelectedCopyIds(copy?.id ? [copy.id] : [])
+                setPreselectedCopyIds(copy?.id ? [copy.id] : [])
+                setScanned({ record, copy })
+                setCreateModal(true)
+                return
+            }
+            const term = payload.type === 'code' ? payload.value : ''
+            if (!term) return
+            setSearchInput(term)
+            setAppliedSearch(term)
+            setPage(1)
+        }
+    })
 
 
     useEffect(() => {
@@ -75,7 +104,8 @@ export default function ManageItemLoansPage() {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => setCreateModal(true)}>Hacer préstamo</Button>
+                <Button type="button" onClick={() => { clearScan(); setCreateModal(true) }}>Hacer préstamo</Button>
+                <Button type="button" variant="outline" onClick={() => setScanning(true)}>Escanear QR</Button>
                 <ExportPDFButton items={itemLoans} title="Reporte de Prestamos"></ExportPDFButton>
             </>}
         >
@@ -106,22 +136,33 @@ export default function ManageItemLoansPage() {
 
         {createModal &&
             <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setCreateModal(false)}>X</Button></div>
+                <div className="flex-1 flex justify-end"><Button onClick={() => { clearScan(); setCreateModal(false) }}>X</Button></div>
                 <form encType="multipart/form-data" onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleCreateSubmit(e)} className="flex flex-col gap-2">
 
                     <div>
-                        <ItemSearcher onSelect={(item: any) => {
+                        <ItemSearcher defaultValue={scanned?.record ?? null} onSelect={(item: any) => {
                             setLoanItemId(item?.id ?? null)
                             setSelectedCopyIds([])
+                            setPreselectedCopyIds([])
+                            setScanned(null)
                         }}></ItemSearcher>
                     </div>
 
+
+                    {scanned && (
+                        <p className="text-sm bg-amber-50 text-amber-900 border border-amber-200 rounded-lg px-3 py-2">
+                            Escaneado: <strong>{scanned.record.name ?? 'Artículo'}</strong>
+                            {scanned.record.code ? ` · ${scanned.record.code}` : ''}
+                            {scanned.copy?.code ? ` · ejemplar ${scanned.copy.code}` : ''}
+                        </p>
+                    )}
 
                     {loanItemId && (
                         <CopySelector
                             key={loanItemId}
                             kind="inventory"
                             resourceId={loanItemId}
+                            initialSelected={preselectedCopyIds}
                             onChange={setSelectedCopyIds}
                         />
                     )}
@@ -164,6 +205,10 @@ export default function ManageItemLoansPage() {
                 </form>
             </GenericModalContainer>
         }
+
+        {scanning && (
+            <QrScannerModal onResult={handleRaw} onClose={() => setScanning(false)} />
+        )}
 
     </section>
 }

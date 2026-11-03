@@ -10,7 +10,7 @@ import { useItems } from "@/components/inventory/InventoryManagePage"
 export default function ItemSearcher({ defaultValue = null, onSelect }: any) {
     const [search, setSearch] = useState('')
 
-    const [selectedItem, setSelectedItem] = useState<any>(null)
+    const [selectedItem, setSelectedItem] = useState<any>(defaultValue ?? null)
     const { items, setItems, getItems } = useItems({ search })
 
 

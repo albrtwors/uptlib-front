@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button/Button"
 import Input from "@/components/form/input/InputField"
 import Label from "@/components/form/Label"
 import GenericModalContainer from "@/components/modals/GenericModalContainer"
+import QrModal from "@/components/qr/QrModal"
 import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
+import { qrTargetForCopy, qrTargetForRecord } from "@/utils/qrPayload"
 
 export type CopyStatus = "DISPONIBLE" | "PRESTADO" | "MANTENIMIENTO" | "BAJA"
 
@@ -43,15 +45,19 @@ interface CopiesManagerProps {
     title: string
     /** Código asignado por la biblioteca al libro o artículo: origen del prefijo de los ejemplares */
     parentCode?: string | null
+    /** Ejemplar traído por un QR: se resalta y se lleva al usuario hasta él. */
+    highlightCopyId?: string | null
     onClose: () => void
     onChanged?: () => void
 }
 
-export default function CopiesManager({ kind, resourceId, title, parentCode, onClose, onChanged }: CopiesManagerProps) {
+export default function CopiesManager({ kind, resourceId, title, parentCode, highlightCopyId, onClose, onChanged }: CopiesManagerProps) {
     const [copies, setCopies] = useState<Copy[]>([])
     const [loading, setLoading] = useState(true)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
+    const [qr, setQr] = useState<{ value: string; title: string; code: string | null } | null>(null)
+    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
 
     // 💡 El lote de nuevos ejemplares se guarda en el navegador mientras se escribe
     const {
@@ -100,6 +106,12 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, onC
     }
 
     useEffect(() => { load() }, [])
+
+    // 💡 El ejemplar escaneado tiene que verse: primero cargan los datos, luego se desplaza
+    useEffect(() => {
+        if (loading || !highlightCopyId) return
+        rowRefs.current[highlightCopyId]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, [loading, highlightCopyId, copies])
 
     const addCopies = async () => {
         setBusy(true)
@@ -172,130 +184,150 @@ export default function CopiesManager({ kind, resourceId, title, parentCode, onC
         }
     }
 
-    return <GenericModalContainer>
-        <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-bold">Ejemplares · {title}</h3>
-            <Button type="button" size="sm" onClick={onClose}>X</Button>
-        </div>
+    return <>
+        <GenericModalContainer>
+            <div className="flex justify-between items-center gap-2 mb-3">
+                <h3 className="min-w-0 flex-1 truncate text-lg font-bold">Ejemplares · {title}</h3>
+                <Button type="button" size="sm" variant="outline" onClick={() => setQr(qrTargetForRecord(kind, { id: resourceId, name: title, code: parentCode }))}>
+                    QR del registro
+                </Button>
+                <Button type="button" size="sm" onClick={onClose}>X</Button>
+            </div>
 
-        {error && <div className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</div>}
+            {error && <div className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</div>}
 
-        <div className="rounded-lg border border-gray-200 p-3 mb-3">
-            {draftRestored && (
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5">
-                    <span className="text-xs text-amber-800">Se restauró el lote sin agregar de este navegador.</span>
-                    <Button type="button" size="sm" variant="outline" onClick={clearDraft}>Descartar</Button>
+            <div className="rounded-lg border border-gray-200 p-3 mb-3">
+                {draftRestored && (
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5">
+                        <span className="text-xs text-amber-800">Se restauró el lote sin agregar de este navegador.</span>
+                        <Button type="button" size="sm" variant="outline" onClick={clearDraft}>Descartar</Button>
+                    </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <Label>Cantidad</Label>
+                        <Input type="number" min="1" value={quantity} onChange={(e: any) => patchDraft({ quantity: e.target.value })} />
+                    </div>
+                    <div>
+                        <Label>Ubicación (opcional)</Label>
+                        <Input value={location} onChange={(e: any) => patchDraft({ location: e.target.value })} placeholder="Estante..." />
+                    </div>
                 </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <Label>Cantidad</Label>
-                    <Input type="number" min="1" value={quantity} onChange={(e: any) => patchDraft({ quantity: e.target.value })} />
+                <div className="mt-2">
+                    <Label>Códigos personalizados (opcional, separados por coma)</Label>
+                    <Input value={codesText} onChange={(e: any) => patchDraft({ codesText: e.target.value })} placeholder="XXX-XXXX-0001, ..." />
                 </div>
-                <div>
-                    <Label>Ubicación (opcional)</Label>
-                    <Input value={location} onChange={(e: any) => patchDraft({ location: e.target.value })} placeholder="Estante..." />
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                        <Label>Rango desde (opcional)</Label>
+                        <Input value={codeFrom} onChange={(e: any) => patchDraft({ codeFrom: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + 1).padStart(4, '0')}`} />
+                    </div>
+                    <div>
+                        <Label>Rango hasta (opcional)</Label>
+                        <Input value={codeTo} onChange={(e: any) => patchDraft({ codeTo: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + requestedQuantity).padStart(4, '0')}`} />
+                    </div>
                 </div>
-            </div>
-            <div className="mt-2">
-                <Label>Códigos personalizados (opcional, separados por coma)</Label>
-                <Input value={codesText} onChange={(e: any) => patchDraft({ codesText: e.target.value })} placeholder="XXX-XXXX-0001, ..." />
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-                <div>
-                    <Label>Rango desde (opcional)</Label>
-                    <Input value={codeFrom} onChange={(e: any) => patchDraft({ codeFrom: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + 1).padStart(4, '0')}`} />
-                </div>
-                <div>
-                    <Label>Rango hasta (opcional)</Label>
-                    <Input value={codeTo} onChange={(e: any) => patchDraft({ codeTo: e.target.value })} placeholder={`Ej: ${copyBase || 'LIB-XXXX'}-${String(highestNumber + requestedQuantity).padStart(4, '0')}`} />
-                </div>
-            </div>
-            {copyBase ? (
-                <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                    <p className="text-xs text-gray-600">
-                        Los ejemplares heredan el código del recurso: <span className="font-mono font-semibold text-gray-800">{copyBase}</span>
-                    </p>
-                    {!codesText.trim() && !codeFrom.trim() && requestedQuantity > 0 && (
-                        <p className="text-xs text-gray-600 mt-1">
-                            Se generará la numeración continuando la existente:{" "}
-                            <span className="font-mono">{expectedCodes.slice(0, 5).join(", ")}{expectedCodes.length > 5 ? "…" : ""}</span>
+                {copyBase ? (
+                    <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                        <p className="text-xs text-gray-600">
+                            Los ejemplares heredan el código del recurso: <span className="font-mono font-semibold text-gray-800">{copyBase}</span>
                         </p>
-                    )}
-                </div>
-            ) : (
-                <p className="text-xs text-amber-600 mt-2">
-                    El recurso no tiene código asignado: los ejemplares usarán un prefijo generado desde el ISBN o el identificador.
+                        {!codesText.trim() && !codeFrom.trim() && requestedQuantity > 0 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                                Se generará la numeración continuando la existente:{" "}
+                                <span className="font-mono">{expectedCodes.slice(0, 5).join(", ")}{expectedCodes.length > 5 ? "…" : ""}</span>
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-xs text-amber-600 mt-2">
+                        El recurso no tiene código asignado: los ejemplares usarán un prefijo generado desde el ISBN o el identificador.
+                    </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                    Si indicas un rango, los ejemplares se numerarán consecutivamente desde ese código. Los códigos personalizados tienen prioridad sobre el rango.
                 </p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-                Si indicas un rango, los ejemplares se numerarán consecutivamente desde ese código. Los códigos personalizados tienen prioridad sobre el rango.
-            </p>
-            <div className="mt-3">
-                <Button type="button" size="sm" onClick={addCopies} disabled={busy}>Agregar ejemplares</Button>
+                <div className="mt-3">
+                    <Button type="button" size="sm" onClick={addCopies} disabled={busy}>Agregar ejemplares</Button>
+                </div>
             </div>
-        </div>
 
-        {loading ? (
-            <p className="text-center text-gray-500 py-6">Cargando...</p>
-        ) : copies.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">Este recurso no tiene ejemplares registrados.</p>
-        ) : (
-            <div className="overflow-x-auto">
-                <table className="w-full table-auto">
-                    <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Código</th>
-                            <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Estado</th>
-                            <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ubicación</th>
-                            <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-32">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {copies.map((copy) => editId === copy.id ? (
-                            <tr key={copy.id}>
-                                <td className="px-2 py-2"><Input value={editForm.code} onChange={(e: any) => setEditForm({ ...editForm, code: e.target.value })} /></td>
-                                <td className="px-2 py-2">
-                                    <select value={editForm.status} onChange={(e: any) => setEditForm({ ...editForm, status: e.target.value })} className="p-2 rounded-lg border border-gray-300 text-sm">
-                                        {COPY_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </td>
-                                <td className="px-2 py-2"><Input value={editForm.location} onChange={(e: any) => setEditForm({ ...editForm, location: e.target.value })} /></td>
-                                <td className="px-2 py-2">
-                                    <div className="flex gap-1 justify-center">
-                                        <Button type="button" size="sm" onClick={saveEdit} disabled={busy}>Guardar</Button>
-                                        <Button type="button" size="sm" variant="outline" onClick={() => setEditId(null)}>Cancelar</Button>
-                                    </div>
-                                </td>
+            {loading ? (
+                <p className="text-center text-gray-500 py-6">Cargando...</p>
+            ) : copies.length === 0 ? (
+                <p className="text-center text-gray-500 py-6">Este recurso no tiene ejemplares registrados.</p>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full table-auto">
+                        <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                                <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Código</th>
+                                <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Estado</th>
+                                <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ubicación</th>
+                                <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase w-44">Acciones</th>
                             </tr>
-                        ) : (
-                            <tr key={copy.id} className="hover:bg-gray-50">
-                                <td className="px-2 py-2 text-sm font-mono text-gray-800">{copy.code}</td>
-                                <td className="px-2 py-2">
-                                    <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${statusClasses[copy.status] || 'bg-gray-100 text-gray-800'}`}>
-                                        {copy.status}
-                                    </span>
-                                </td>
-                                <td className="px-2 py-2 text-sm text-gray-600">{copy.location || '—'}</td>
-                                <td className="px-2 py-2">
-                                    <div className="flex gap-1 justify-center">
-                                        <Button type="button" size="sm" variant="outline" onClick={() => {
-                                            setEditId(copy.id)
-                                            setEditForm({
-                                                code: copy.code,
-                                                status: copy.status,
-                                                location: copy.location ?? '',
-                                                observations: copy.observations ?? ''
-                                            })
-                                        }}>Editar</Button>
-                                        <Button type="button" size="sm" className="bg-red-600" onClick={() => removeCopy(copy.id)} disabled={busy}>Eliminar</Button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        )}
-    </GenericModalContainer>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {copies.map((copy) => editId === copy.id ? (
+                                <tr key={copy.id}>
+                                    <td className="px-2 py-2"><Input value={editForm.code} onChange={(e: any) => setEditForm({ ...editForm, code: e.target.value })} /></td>
+                                    <td className="px-2 py-2">
+                                        <select value={editForm.status} onChange={(e: any) => setEditForm({ ...editForm, status: e.target.value })} className="p-2 rounded-lg border border-gray-300 text-sm">
+                                            {COPY_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </td>
+                                    <td className="px-2 py-2"><Input value={editForm.location} onChange={(e: any) => setEditForm({ ...editForm, location: e.target.value })} /></td>
+                                    <td className="px-2 py-2">
+                                        <div className="flex gap-1 justify-center">
+                                            <Button type="button" size="sm" onClick={saveEdit} disabled={busy}>Guardar</Button>
+                                            <Button type="button" size="sm" variant="outline" onClick={() => setEditId(null)}>Cancelar</Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                <tr
+                                    key={copy.id}
+                                    ref={(node) => { rowRefs.current[copy.id] = node }}
+                                    className={`hover:bg-gray-50 ${highlightCopyId === copy.id ? 'bg-amber-50 ring-2 ring-inset ring-amber-400' : ''}`}
+                                >
+                                    <td className="px-2 py-2 text-sm font-mono text-gray-800">
+                                        {copy.code}
+                                        {highlightCopyId === copy.id && (
+                                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">escaneado</span>
+                                        )}
+                                    </td>
+                                    <td className="px-2 py-2">
+                                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${statusClasses[copy.status] || 'bg-gray-100 text-gray-800'}`}>
+                                            {copy.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-2 py-2 text-sm text-gray-600">{copy.location || '—'}</td>
+                                    <td className="px-2 py-2">
+                                        <div className="flex gap-1 justify-center">
+                                            <Button type="button" size="sm" variant="outline" onClick={() => setQr(qrTargetForCopy(kind, { id: resourceId, name: title }, copy))}>QR</Button>
+                                            <Button type="button" size="sm" variant="outline" onClick={() => {
+                                                setEditId(copy.id)
+                                                setEditForm({
+                                                    code: copy.code,
+                                                    status: copy.status,
+                                                    location: copy.location ?? '',
+                                                    observations: copy.observations ?? ''
+                                                })
+                                            }}>Editar</Button>
+                                            <Button type="button" size="sm" className="bg-red-600" onClick={() => removeCopy(copy.id)} disabled={busy}>Eliminar</Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </GenericModalContainer>
+
+        {qr && <QrModal
+            {...qr}
+            onClose={() => setQr(null)}
+        />}
+    </>
 }

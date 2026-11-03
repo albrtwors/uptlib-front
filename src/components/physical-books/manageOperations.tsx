@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useManageBooks } from "../books/manageBooksPage";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import GenericModalContainer from "../modals/GenericModalContainer";
@@ -26,6 +25,8 @@ import SearchField from "@/components/form/SearchField";
 import BulkActionBar from "@/components/ui/BulkActionBar";
 import useRowSelection from "@/hooks/lib/useRowSelection";
 import { useBulkActions } from "@/hooks/lib/useBulkActions";
+import QrScannerModal from "@/components/qr/QrScannerModal";
+import { useQrScan } from "@/hooks/qr/useQrScan";
 
 const ExportPDFButton = dynamic(
     () => import('./pdf/exportOperationsButton'),
@@ -45,17 +46,20 @@ export default function ManageOperationsPage() {
     const [selectedDropCopies, setSelectedDropCopies] = useState<string[]>([])
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [selectedOperation, setSelectedOperation] = useState<any>(null)
+    // El último QR leído: con él sabemos qué formulario abrir y qué ejemplar marcar.
+    const [scanned, setScanned] = useState<{ form: 'entrie' | 'drop'; record: any; copy: any } | null>(null)
 
     //search handling
     const pathname = usePathname();
     const router = useRouter();
 
-    //search
-    const [searchInput, setSearchInput] = useState('')
-    const [appliedSearch, setAppliedSearch] = useState('')
-    const [type, setType] = useState('')
-    const { page, totalPages, setPage } = usePagination()
-    const [limit, setLimit] = useState(10)
+    //search · la URL es la que manda: un F5 o un enlace compartido recuperan el contexto
+    const searchParams = useSearchParams()
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
+    const [appliedSearch, setAppliedSearch] = useState(searchParams.get('search') ?? '')
+    const [type, setType] = useState(searchParams.get('type') ?? '')
+    const { page, totalPages, setPage } = usePagination(searchParams.get('page') ?? 1)
+    const [limit, setLimit] = useState(parseInt(searchParams.get('limit') ?? '10', 10) || 10)
     const { loans, setLoans, getLoans } = usePhysicalBookLoans({ search: appliedSearch, limit })
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: appliedSearch, limit: limit })
     const { operations, setOperations, getOperations } = useOperations({ search: appliedSearch, limit })
@@ -90,6 +94,40 @@ export default function ManageOperationsPage() {
         onDone: () => reload(1)
     })
 
+    // 💡 El QR de un ejemplar abre la operación que le toca según su estado: lo dado
+    // de baja se reactiva y lo disponible se da de baja. El QR del libro y un
+    // código suelto sólo filtran el histórico por ese recurso.
+    const { scanning, setScanning, handleRaw } = useQrScan({
+        resource: 'physical-book',
+        onResult: ({ record, copy, payload }) => {
+            const term = record
+                ? (record.code || record.title || '')
+                : payload.type === 'code' ? payload.value : ''
+            if (term) {
+                setSearchInput(term)
+                setAppliedSearch(term)
+                setPage(1)
+            }
+            if (!record || !copy?.id) return
+
+            const status = String(copy.status ?? '').toUpperCase()
+            if (status === 'BAJA' || status === 'MANTENIMIENTO') {
+                setScanned({ form: 'entrie', record, copy })
+                setEntrieBookId(record.id)
+                setSelectedEntrieCopies([copy.id])
+                setEntrieModal(true)
+            } else if (status === 'DISPONIBLE') {
+                setScanned({ form: 'drop', record, copy })
+                setDropBookId(record.id)
+                setSelectedDropCopies([copy.id])
+                setDropModal(true)
+            }
+        }
+    })
+
+    const entrieScan = scanned?.form === 'entrie' ? scanned : null
+    const dropScan = scanned?.form === 'drop' ? scanned : null
+
 
 
     return <section className="flex flex-col gap-3">
@@ -98,8 +136,9 @@ export default function ManageOperationsPage() {
 
         <FilterBar
             actions={<>
-                <Button type="button" onClick={() => { setEntrieBookId(null); setSelectedEntrieCopies([]); setEntrieModal(true) }}>Entrada</Button>
-                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => { setDropBookId(null); setSelectedDropCopies([]); setDropModal(true) }}>Baja</Button>
+                <Button type="button" onClick={() => { setScanned(null); setEntrieBookId(null); setSelectedEntrieCopies([]); setEntrieModal(true) }}>Entrada</Button>
+                <Button type="button" className="bg-red-600 hover:bg-red-400" onClick={() => { setScanned(null); setDropBookId(null); setSelectedDropCopies([]); setDropModal(true) }}>Baja</Button>
+                <Button type="button" variant="outline" onClick={() => setScanning(true)}>Escanear QR</Button>
                 <ExportPDFButton items={operations} title={'Reporte de operaciones de Libros físicos'} ></ExportPDFButton>
             </>}
         >
@@ -227,14 +266,23 @@ export default function ManageOperationsPage() {
 
         {(entrieModal) &&
             <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setEntrieModal(false)}>X</Button></div>
+                <div className="flex-1 flex justify-end"><Button onClick={() => { setScanned(null); setEntrieModal(false) }}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleEntrieSubmit(e)} className="flex flex-col gap-2">
                     <div>
-                        <PhysicalBookSearcher onSelect={(book: any) => {
+                        <PhysicalBookSearcher defaultValue={entrieScan ? entrieScan.record : null} onSelect={(book: any) => {
                             setEntrieBookId(book?.id ?? null)
                             setSelectedEntrieCopies([])
+                            setScanned(null)
                         }}></PhysicalBookSearcher>
                     </div>
+
+                    {entrieScan && (
+                        <p className="text-sm bg-amber-50 text-amber-900 border border-amber-200 rounded-lg px-3 py-2">
+                            Escaneado: <strong>{entrieScan.record.title ?? 'Libro'}</strong>
+                            {entrieScan.record.code ? ` · ${entrieScan.record.code}` : ''}
+                            {entrieScan.copy?.code ? ` · ejemplar ${entrieScan.copy.code}` : ''}
+                        </p>
+                    )}
 
                     {entrieBookId && (
                         <CopySelector
@@ -244,6 +292,7 @@ export default function ManageOperationsPage() {
                             statuses={["BAJA", "MANTENIMIENTO"]}
                             label="Ejemplares a reactivar"
                             emptyText="No hay ejemplares dados de baja ni en mantenimiento. Se crearán ejemplares nuevos con la cantidad."
+                            initialSelected={entrieScan?.copy?.id ? [entrieScan.copy.id] : []}
                             onChange={setSelectedEntrieCopies}
                         />
                     )}
@@ -277,14 +326,23 @@ export default function ManageOperationsPage() {
 
         {(dropModal) &&
             <GenericModalContainer>
-                <div className="flex-1 flex justify-end"><Button onClick={() => setDropModal(false)}>X</Button></div>
+                <div className="flex-1 flex justify-end"><Button onClick={() => { setScanned(null); setDropModal(false) }}>X</Button></div>
                 <form onSubmit={(e: React.FormEvent<HTMLFormElement>) => handleDropSubmit(e)} className="flex flex-col gap-2">
                     <div>
-                        <PhysicalBookSearcher onSelect={(book: any) => {
+                        <PhysicalBookSearcher defaultValue={dropScan ? dropScan.record : null} onSelect={(book: any) => {
                             setDropBookId(book?.id ?? null)
                             setSelectedDropCopies([])
+                            setScanned(null)
                         }}></PhysicalBookSearcher>
                     </div>
+
+                    {dropScan && (
+                        <p className="text-sm bg-amber-50 text-amber-900 border border-amber-200 rounded-lg px-3 py-2">
+                            Escaneado: <strong>{dropScan.record.title ?? 'Libro'}</strong>
+                            {dropScan.record.code ? ` · ${dropScan.record.code}` : ''}
+                            {dropScan.copy?.code ? ` · ejemplar ${dropScan.copy.code}` : ''}
+                        </p>
+                    )}
 
                     {dropBookId && (
                         <CopySelector
@@ -294,6 +352,7 @@ export default function ManageOperationsPage() {
                             statuses={["DISPONIBLE", "MANTENIMIENTO"]}
                             label="Ejemplares a dar de baja"
                             emptyText="Este libro no tiene ejemplares que puedan darse de baja. Se usará la cantidad."
+                            initialSelected={dropScan?.copy?.id ? [dropScan.copy.id] : []}
                             onChange={setSelectedDropCopies}
                         />
                     )}
@@ -323,5 +382,7 @@ export default function ManageOperationsPage() {
 
                 </form>
             </GenericModalContainer>}
+
+        {scanning && <QrScannerModal onResult={handleRaw} onClose={() => setScanning(false)} />}
     </section>
 }

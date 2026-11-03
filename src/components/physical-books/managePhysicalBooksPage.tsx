@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Label from "../form/Label"
 import Input from "../form/input/InputField"
 import GenericModalContainer from "../modals/GenericModalContainer"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import { useManageModals } from "@/hooks/useModal"
 import { useManageBooks } from "@/hooks/physicalBooks/useManageBooks"
@@ -27,6 +27,10 @@ import { useBulkActions } from "@/hooks/lib/useBulkActions"
 import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 import { physicalBookToRecord } from "@/utils/jsonRecords"
 import RecordsWorkspaceModal from "./records/RecordsWorkspaceModal"
+import QrModal from "@/components/qr/QrModal"
+import QrScannerModal from "@/components/qr/QrScannerModal"
+import { useQrScan } from "@/hooks/qr/useQrScan"
+import { qrTargetForRecord } from "@/utils/qrPayload"
 
 const ExportPDFButton = dynamic(
     () => import('./pdf/exportPhysicalBooksButton'),
@@ -40,6 +44,8 @@ export default function ManagePhysicalBooksPage() {
 
     const [selectedBook, setSelectedBook]: any = useState(null)
     const [copiesBook, setCopiesBook]: any = useState(null)
+    const [highlightCopyId, setHighlightCopyId] = useState<string | null>(null)
+    const [qrTarget, setQrTarget]: any = useState(null)
     // 💡 La mesa de trabajo se guarda en el navegador: si el usuario refresca la
     // página o se le cierra el portátil, el modal reaparece con sus borradores.
     const {
@@ -51,12 +57,15 @@ export default function ManagePhysicalBooksPage() {
     const pathname = usePathname();
     const router = useRouter();
 
-    const [searchInput, setSearchInput] = useState('')
-    const [appliedSearch, setAppliedSearch] = useState('')
-    const [category, setCategory] = useState('')
-    const [pnf, setPnf] = useState('')
-    const [limit, setLimit] = useState(10)
-    const { page, setPage, totalPages } = usePagination()
+    // 💡 Los filtros viven en la URL: compartir el enlace o recargar (F5) conserva
+    // la búsqueda, el género, el PNF, la página y el tamaño de lote exactos.
+    const searchParams = useSearchParams()
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
+    const [appliedSearch, setAppliedSearch] = useState(searchParams.get('search') ?? '')
+    const [category, setCategory] = useState(searchParams.get('genre') ?? '')
+    const [pnf, setPnf] = useState(searchParams.get('pnf') ?? '')
+    const [limit, setLimit] = useState(parseInt(searchParams.get('limit') ?? '10', 10) || 10)
+    const { page, setPage, totalPages } = usePagination(searchParams.get('page') ?? 1)
     const { books, setUseAllBooks, getBooks } = useManageBooks({ search: searchInput, limit: limit, page, totalPages })
 
     const { pnfs: pnfOptions } = usePnfs({ search: '', limit: 100 })
@@ -80,6 +89,24 @@ export default function ManagePhysicalBooksPage() {
         onDone: () => reload(1)
     })
 
+    // 💡 El QR de un libro filtra el listado y el de un ejemplar abre sus ejemplares
+    // con esa unidad a la vista. Un código suelto (etiqueta vieja) también basta.
+    const { scanning, setScanning, handleRaw } = useQrScan({
+        resource: 'physical-book',
+        onResult: ({ record, copy, payload }) => {
+            const term = record?.code || record?.title || (payload.type === 'code' ? payload.value : '')
+            if (term) {
+                setSearchInput(term)
+                setAppliedSearch(term)
+                setPage(1)
+            }
+            if (record) {
+                setHighlightCopyId(copy?.id ?? null)
+                setCopiesBook(record)
+            }
+        }
+    })
+
     useEffect(() => {
         const params = new URLSearchParams()
         params.set('search', appliedSearch)
@@ -98,6 +125,7 @@ export default function ManagePhysicalBooksPage() {
         <FilterBar
             actions={<>
                 <Button type="button" onClick={() => setWorkspace({ mode: 'create', seeds: [] })}>Añadir libros</Button>
+                <Button type="button" variant="outline" onClick={() => setScanning(true)}>Escanear QR</Button>
                 <ExportPDFButton items={books} title={'Reporte de Libros Fisicos'}></ExportPDFButton>
             </>}
         >
@@ -145,7 +173,8 @@ export default function ManagePhysicalBooksPage() {
                     setDeleteModal(true)
                     setSelectedBook(book)
                 }}
-                onCopies={(book: any) => setCopiesBook(book)}
+                onCopies={(book: any) => { setHighlightCopyId(null); setCopiesBook(book) }}
+                onQr={(book: any) => setQrTarget(qrTargetForRecord('physical-book', book))}
                 books={books} />}
         </div>
 
@@ -287,8 +316,13 @@ export default function ManagePhysicalBooksPage() {
             resourceId={copiesBook.id}
             title={copiesBook.title}
             parentCode={copiesBook.code}
-            onClose={() => setCopiesBook(null)}
+            highlightCopyId={highlightCopyId}
+            onClose={() => { setCopiesBook(null); setHighlightCopyId(null) }}
             onChanged={() => reload()}
         />}
+
+        {qrTarget && <QrModal {...qrTarget} onClose={() => setQrTarget(null)} />}
+
+        {scanning && <QrScannerModal onResult={handleRaw} onClose={() => setScanning(false)} />}
     </section>
 }

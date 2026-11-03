@@ -3,7 +3,7 @@
 import Checkbox from "@/components/form/input/Checkbox"
 import type { RowSelection } from "@/hooks/lib/useRowSelection"
 
-export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCopies, selection }: { books: any[], onDelete: any, onEdit: any, onCopies?: any, selection?: RowSelection }) {
+export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCopies, onQr, selection }: { books: any[], onDelete: any, onEdit: any, onCopies?: any, onQr?: any, selection?: RowSelection }) {
     return (
         <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             {/* Vista de Tabla - Se oculta en móviles (hidden md:block) */}
@@ -137,6 +137,15 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
                                 <td className="px-4 py-4 text-center">
                                     <div className="flex items-center justify-center gap-1">
                                         <button
+                                            onClick={() => onQr?.(book)}
+                                            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+                                            title="Ver código QR"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h5v5H4V4zm11 0h5v5h-5V4zM4 15h5v5H4v-5zm11 0h2v2h-2v-2zm3 3h2v2h-2v-2zm-3 0h2v2h-2v-2zm3-3h2v2h-2v-2z" />
+                                            </svg>
+                                        </button>
+                                        <button
                                             onClick={() => onCopies?.(book)}
                                             className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-all"
                                             title="Gestionar ejemplares"
@@ -249,6 +258,15 @@ export default function ManagePhysicalBooksTable({ books, onDelete, onEdit, onCo
 
                         {/* Botones de Acción Móviles */}
                         <div className="flex gap-2 pt-3 border-t border-gray-100">
+                            <button
+                                onClick={() => onQr?.(book)}
+                                className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center"
+                                title="Ver código QR"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h5v5H4V4zm11 0h5v5h-5V4zM4 15h5v5H4v-5zm11 0h2v2h-2v-2zm3 3h2v2h-2v-2zm-3 0h2v2h-2v-2zm3-3h2v2h-2v-2z" />
+                                </svg>
+                            </button>
                             <button
                                 onClick={() => onCopies?.(book)}
                                 className="flex-1 p-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"

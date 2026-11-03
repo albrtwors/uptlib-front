@@ -9,7 +9,7 @@ import Input from "../form/input/InputField"
 import { fetchDeleteConfig, fetchPatchConfig, fetchPostConfig } from "@/hooks/lib/fetch/fetchConfig"
 import { handleResponses } from "@/hooks/lib/responses/handleResponses"
 import { SwalAlert } from "@/hooks/lib/swal/swal"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { TvIcon } from "@heroicons/react/24/outline"
 import { api } from "@/consts/api"
 import ManageItemsTable from "./tables/manageItemsTable"
@@ -28,6 +28,10 @@ import { useBulkActions } from "@/hooks/lib/useBulkActions"
 import { itemToRecord } from "@/utils/jsonRecords"
 import { formCacheKey, useCachedState } from "@/hooks/lib/useCachedForm"
 import InventoryRecordsWorkspaceModal from "./records/InventoryRecordsWorkspaceModal"
+import QrModal from "@/components/qr/QrModal"
+import QrScannerModal from "@/components/qr/QrScannerModal"
+import { useQrScan } from "@/hooks/qr/useQrScan"
+import { qrTargetForRecord } from "@/utils/qrPayload"
 
 const ExportItemsPDFButton = dynamic(
     () => import('./pdf/exportButton'),
@@ -52,11 +56,14 @@ export const useItems = ({ search, limit }: any) => {
 }
 
 export default function InventoryManagePage({ }) {
-    const { page, setPage, totalPages } = usePagination()
-    const [searchInput, setSearchInput] = useState('')
-    const [search, setSearch] = useState('')
-    const [type, setType] = useState('')
-    const [limit, setLimit] = useState('10')
+    // 💡 Los filtros viven en la URL: compartir el enlace o recargar (F5) conserva
+    // la búsqueda, el tipo, la página y el tamaño de lote exactos.
+    const searchParams = useSearchParams()
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
+    const [search, setSearch] = useState(searchParams.get('search') ?? '')
+    const [type, setType] = useState(searchParams.get('type') ?? '')
+    const [limit, setLimit] = useState(searchParams.get('limit') ?? '10')
+    const { page, setPage, totalPages } = usePagination(searchParams.get('page') ?? 1)
 
     const pathname = usePathname()
     const router = useRouter()
@@ -65,6 +72,8 @@ export default function InventoryManagePage({ }) {
     const { deleteModal, setDeleteModal } = useManageModals()
     const [selectedItem, setSelectedItem]: any = useState(null)
     const [copiesItem, setCopiesItem]: any = useState(null)
+    const [highlightCopyId, setHighlightCopyId] = useState<string | null>(null)
+    const [qrTarget, setQrTarget]: any = useState(null)
     const [typeModal, setTypeModal] = useState({ create: false, delete: false })
 
     // 💡 La mesa de trabajo vive en el navegador: si la página se recarga o se cierra
@@ -82,6 +91,25 @@ export default function InventoryManagePage({ }) {
     const reload = (targetPage = page) => getItems({ search, limit, page: targetPage, type }).then((res: any) => {
         setItems(res.data)
         totalPages.current = res.totalPages
+    })
+
+    // 💡 Escanear lleva al usuario hasta lo que tiene enfrente: el QR de un
+    // artículo filtra el listado, y el de un ejemplar abre sus ejemplares con
+    // esa unidad a la vista. Un código suelto (etiqueta vieja) también basta.
+    const { scanning, setScanning, handleRaw } = useQrScan({
+        resource: 'inventory',
+        onResult: ({ record, copy, payload }) => {
+            const term = record?.code || record?.name || (payload.type === 'code' ? payload.value : '')
+            if (term) {
+                setSearchInput(term)
+                setSearch(term)
+                setPage(1)
+            }
+            if (record) {
+                setHighlightCopyId(copy?.id ?? null)
+                setCopiesItem(record)
+            }
+        }
     })
 
     const selection = useRowSelection(items)
@@ -115,6 +143,7 @@ export default function InventoryManagePage({ }) {
         <FilterBar
             actions={<>
                 <Button type="button" onClick={() => setWorkspace({ mode: 'create', seeds: [] })}>Añadir Item</Button>
+                <Button type="button" variant="outline" onClick={() => setScanning(true)}>Escanear QR</Button>
                 <ExportItemsPDFButton items={items} title={'Inventario de Items UPTALib'}></ExportItemsPDFButton>
             </>}
         >
@@ -174,7 +203,8 @@ export default function InventoryManagePage({ }) {
                 setSelectedItem(item)
             }}
             onEdit={(item: any) => setWorkspace({ mode: 'edit', seeds: [item] })}
-            onCopies={(item: any) => setCopiesItem(item)}
+            onCopies={(item: any) => { setHighlightCopyId(null); setCopiesItem(item) }}
+            onQr={(item: any) => setQrTarget(qrTargetForRecord('inventory', item))}
             items={items}></ManageItemsTable>
         }
 
@@ -200,9 +230,14 @@ export default function InventoryManagePage({ }) {
             resourceId={copiesItem.id}
             title={copiesItem.name}
             parentCode={copiesItem.code}
-            onClose={() => setCopiesItem(null)}
+            highlightCopyId={highlightCopyId}
+            onClose={() => { setCopiesItem(null); setHighlightCopyId(null) }}
             onChanged={() => reload()}
         />}
+
+        {qrTarget && <QrModal {...qrTarget} onClose={() => setQrTarget(null)} />}
+
+        {scanning && <QrScannerModal onResult={handleRaw} onClose={() => setScanning(false)} />}
 
         <div>
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl shadow-sm">

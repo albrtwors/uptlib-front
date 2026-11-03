@@ -22,6 +22,8 @@ interface CopySelectorProps {
     label?: string
     /** Aviso cuando no hay ejemplares en los estados buscados. */
     emptyText?: string
+    /** Ejemplar ya conocidos (vienen de un QR escaneado) que se marcan solos. */
+    initialSelected?: string[]
 }
 
 export default function CopySelector({
@@ -31,9 +33,10 @@ export default function CopySelector({
     statuses = ['DISPONIBLE'],
     label = 'Ejemplares a prestar',
     emptyText = 'Este recurso no tiene ejemplares disponibles. Se usará la cantidad.',
+    initialSelected = [],
 }: CopySelectorProps) {
     const [copies, setCopies] = useState<Copy[]>([])
-    const [selected, setSelected] = useState<string[]>([])
+    const [selected, setSelected] = useState<string[]>(initialSelected)
     const [loading, setLoading] = useState(true)
 
     const base = `/api/${kind}`
@@ -47,10 +50,14 @@ export default function CopySelector({
             .then((data) => {
                 if (!active) return
                 const list: Copy[] = Array.isArray(data?.data) ? data.data : []
-                setCopies(list.filter((c) => allowed.includes(c.status)))
-                // La selección anterior ya no es válida al cambiar de recurso o de estados
-                setSelected([])
-                onChange?.([])
+                const available = list.filter((c) => allowed.includes(c.status))
+                const ids = new Set(available.map((c) => c.id))
+                // 💡 El QR ya dijo qué unidad física es: se conserva lo sembrado y se
+                // descarta lo que dejó de servir al cambiar de recurso o de estados.
+                const keep = Array.from(new Set([...selected, ...initialSelected])).filter((id) => ids.has(id))
+                setCopies(available)
+                setSelected(keep)
+                onChange?.(keep)
             })
             .catch(() => { if (active) setCopies([]) })
             .finally(() => { if (active) setLoading(false) })
