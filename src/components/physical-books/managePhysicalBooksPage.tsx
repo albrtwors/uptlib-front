@@ -133,8 +133,8 @@ export default function ManagePhysicalBooksPage() {
             </>}
         >
             <SearchField
-                label="Titulo del Libro"
-                placeholder="Buscar libros..."
+                label="Titulo, codigo, ISBN o PNF"
+                placeholder="Titulo, codigo, ISBN..."
                 value={searchInput}
                 onValueChange={setSearchInput}
                 onSubmit={(term) => {

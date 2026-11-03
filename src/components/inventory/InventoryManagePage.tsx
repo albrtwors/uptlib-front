@@ -150,8 +150,8 @@ export default function InventoryManagePage({ }) {
             </>}
         >
             <SearchField
-                label="Nombre del Item"
-                placeholder="Nombre del item"
+                label="Nombre o codigo"
+                placeholder="Nombre, codigo o ejemplar"
                 value={searchInput}
                 onValueChange={setSearchInput}
                 onSubmit={(term) => {
